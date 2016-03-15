@@ -13,7 +13,7 @@
 
 ; Coords are 2-item vectors [x y] (where top-left is [0 0])
 ; A "board" is a map with the coords of the :player, :robots, and :piles
-; A "grid" is a vector characters representing the printable board.
+; A "grid" is a vector of vectors of characters representing the printable board.
 
 (defn empty-grid
   []
