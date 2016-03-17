@@ -6,6 +6,7 @@
 (def ^:const player-char \@)
 (def ^:const robot-char \+)
 (def ^:const pile-char \*)
+(def ^:const empty-char \space)
 
 (defn pad
   [coll n padding]
@@ -13,15 +14,27 @@
 
 ; Coords are 2-item vectors [x y] (where top-left is [0 0])
 ; A "board" is a map with the coords of the :player, :robots, and :piles
-; A "grid" is a vector of vectors of characters representing the printable board.
+; A "grid" is a vector of characters representing the printable board.
 
 (defn empty-grid
   []
-  (vec (repeat rows (vec (repeat cols  \space)))))
+  (vec (repeat (* rows cols) empty-char)))
+
+(defn random-grid
+  [num-robots]
+  (shuffle
+    (pad
+      (cons player-char (repeat num-robots robot-char))
+      (* rows cols)
+      empty-char)))
+
+(defn coord->grid-idx
+  [x y]
+  (+ x (* y cols)))
 
 (defn add-char-to-grid
   [grid [x y] ch]
-  (assoc grid y (assoc (get grid y) x ch)))
+  (assoc grid (coord->grid-idx x y) ch))
 
 (defn add-player-to-grid
   [grid coords]
@@ -50,10 +63,19 @@
       (add-robots-to-grid (:robots board))
       (add-piles-to-grid (:piles board))))
 
+(defn grid->board
+  [grid]
+  :FIXME)
+
 (defn grid->vos
   "Return a vector of strings representing the grid"
   [grid]
-  (vec (map #(apply str %) grid)))
+  (vec (map #(apply str %) (partition cols grid))))
+
+(defn grid->str
+  "Return a string representing the grid (suitable for printing)"
+  [grid]
+  (apply str (interpose "\n" (grid->vos grid))))
 
 (defn board->vos
   "Return a vector of strings representing the board"
