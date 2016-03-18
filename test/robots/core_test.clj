@@ -13,31 +13,35 @@
     ; truncates to specified size
     (is (= [:x :x :x] (pad [:x :x :x :x] 3 :p)))))
 
+(def sample-board {:player [5 2]
+                   :robots [[0 0] [7 1] [3 2]]
+                   :piles [[6 4] [58 21]]})
+(def sample-vos ["+                                                          "
+                 "       +                                                   "
+                 "   + @                                                     "
+                 "                                                           "
+                 "      *                                                    "
+                 "                                                           "
+                 "                                                           "
+                 "                                                           "
+                 "                                                           "
+                 "                                                           "
+                 "                                                           "
+                 "                                                           "
+                 "                                                           "
+                 "                                                           "
+                 "                                                           "
+                 "                                                           "
+                 "                                                           "
+                 "                                                           "
+                 "                                                           "
+                 "                                                           "
+                 "                                                           "
+                 "                                                          *"])
+(def sample-grid (apply str sample-vos))
+
 (deftest test-board->vos
-  (testing "returns vector of strings"
-    (let [board {:player [5 2]
-                 :robots [[0 0] [7 1] [3 2]]
-                 :piles [[6 4] [58 21]]}
-          expected ["+                                                          "
-                    "       +                                                   "
-                    "   + @                                                     "
-                    "                                                           "
-                    "      *                                                    "
-                    "                                                           "
-                    "                                                           "
-                    "                                                           "
-                    "                                                           "
-                    "                                                           "
-                    "                                                           "
-                    "                                                           "
-                    "                                                           "
-                    "                                                           "
-                    "                                                           "
-                    "                                                           "
-                    "                                                           "
-                    "                                                           "
-                    "                                                           "
-                    "                                                           "
-                    "                                                           "
-                    "                                                          *"]]
-      (is (= expected (board->vos board))))))
+  (is (= sample-vos (board->vos sample-board))))
+
+(deftest test-grid->board
+  (is (= sample-board (grid->board sample-grid))))

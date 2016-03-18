@@ -32,6 +32,10 @@
   [x y]
   (+ x (* y cols)))
 
+(defn grid-idx->coord
+  [idx]
+  [(rem idx cols) (quot idx cols)])
+
 (defn add-char-to-grid
   [grid [x y] ch]
   (assoc grid (coord->grid-idx x y) ch))
@@ -65,7 +69,14 @@
 
 (defn grid->board
   [grid]
-  :FIXME)
+  (let [char-map (group-by
+                   last
+                   (map-indexed
+                     (fn [idx ch] [(grid-idx->coord idx) ch])
+                     grid))]
+    {:player (first (first (char-map player-char)))
+     :robots (map first (char-map robot-char))
+     :piles (map first (char-map pile-char))}))
 
 (defn grid->vos
   "Return a vector of strings representing the grid"
