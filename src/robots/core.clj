@@ -117,6 +117,11 @@
   :FIXME
 )
 
+(defn move-towards
+  "Given two coordinates, return a new coord that gets source one step closer to target."
+  [source target]
+  (map + source (map compare target source)))
+
 (defn move-robots
   [board]
   ; (reduce add-robot-to-grid grid robots))
