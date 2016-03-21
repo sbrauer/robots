@@ -89,8 +89,8 @@
                      grid))]
     {:player (first (first (char-map player-char)))
      :alive true
-     :robots (map first (char-map robot-char))
-     :piles (map first (char-map pile-char))}))
+     :robots (set (map first (char-map robot-char)))
+     :piles (set (map first (char-map pile-char)))}))
 
 (defn grid->vos
   "Return a vector of strings representing the grid"

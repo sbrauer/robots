@@ -15,8 +15,8 @@
 
 (def sample-board {:player [5 2]
                    :alive true
-                   :robots [[0 0] [7 1] [2 2] [4 4] [5 4]]
-                   :piles [[58 21]]})
+                   :robots #{[0 0] [7 1] [2 2] [4 4] [5 4]}
+                   :piles #{[58 21]}})
 (def sample-vos ["+                                                          "
                  "       +                                                   "
                  "  +  @                                                     "
@@ -70,6 +70,6 @@
   (testing "player stays alive"
     (let [expected {:player [5 2]
                     :alive true
-                    :robots [[1 1] [3 2] [6 2]]
-                    :piles [[5 3] [58 21]]}]
+                    :robots #{[1 1] [3 2] [6 2]}
+                    :piles #{[5 3] [58 21]}}]
     (is (= expected (move-robots sample-board))))))
