@@ -1,5 +1,6 @@
 (ns robots.core
-  (:gen-class))
+  (:gen-class)
+  (:require clojure.set))
 
 (def ^:const cols 59)
 (def ^:const rows 22)
@@ -27,6 +28,11 @@
   [coord dir]
   {:pre  [(contains? #{:n :s :e :w :ne :nw :se :sw} dir)]}
   (map + coord (dir->offset dir)))
+
+(defn coord-in-bounds
+  "Return true if the given coord is within the bounds specified by cols and rows."
+  [coord]
+  :FIXME)
 
 (defn empty-grid
   []
@@ -75,9 +81,9 @@
 (defn board->grid
   [board]
   (-> (empty-grid)
-      (add-player-to-grid (:player board) (:alive board))
       (add-robots-to-grid (:robots board))
-      (add-piles-to-grid (:piles board))))
+      (add-piles-to-grid (:piles board))
+      (add-player-to-grid (:player board) (:alive board))))
 
 ;; This implementation assumes that the grid represents a board with a single alive player.
 (defn grid->board
@@ -118,14 +124,23 @@
 )
 
 (defn move-towards
-  "Given two coordinates, return a new coord that gets source one step closer to target."
-  [source target]
-  (map + source (map compare target source)))
+  "Given two coordinates, return a new coord that gets source one step closer to target.
+  (There's no change if source is already equal to target.)"
+  [target source]
+  (vec (map + source (map compare target source))))
 
 (defn move-robots
   [board]
-  ; (reduce add-robot-to-grid grid robots))
-  :FIXME)
+  (let [new-robot-coords (map (partial move-towards (:player board)) (:robots board))
+        robots-by-pileup (->> (frequencies new-robot-coords)
+                              (map (fn [[coord cnt]] [coord (< 1 cnt)]))
+                              (group-by second)
+                              (map #(vector (first %) (map first (second %))))
+                              (into {}))
+        new-piles (clojure.set/union (:piles board) (set (get robots-by-pileup true)))
+        new-robots (clojure.set/difference (set (get robots-by-pileup false)) new-piles)
+       ]
+    {:robots new-robots :piles new-piles :player (:player board) :alive true}))
 
 (defn -main
   "I don't do a whole lot ... yet."

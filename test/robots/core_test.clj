@@ -66,13 +66,13 @@
     (is (= [4 6] (move-coord [5 5] :sw)))))
 
 (deftest test-move-towards
-  (is (= [4 3] (move-towards [3 4] [5 2])))
-  (is (= [4 2] (move-towards [3 2] [5 2])))
-  (is (= [4 1] (move-towards [3 0] [5 2])))
+  (is (= [4 3] (move-towards [5 2] [3 4])))
+  (is (= [4 2] (move-towards [5 2] [3 2])))
+  (is (= [4 1] (move-towards [5 2] [3 0])))
   ;; Already at target...
   (is (= [5 2] (move-towards [5 2] [5 2]))))
 
-#_(deftest test-move-robots
+(deftest test-move-robots
   ;; FIXME: add another test such that player dies
   (testing "player stays alive"
     (let [expected {:player [5 2]
