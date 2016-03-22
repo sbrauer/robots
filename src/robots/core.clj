@@ -35,11 +35,15 @@
        (< x cols)
        (< y rows)))
 
+(defn rand-coord
+  []
+  [(rand-int cols) (rand-int rows)])
+
 (defn empty-grid
   []
   (vec (repeat (* rows cols) empty-char)))
 
-(defn random-grid
+(defn rand-grid
   [num-robots]
   (shuffle
     (pad
@@ -121,11 +125,25 @@
   [board]
   (grid->vos (board->grid board)))
 
+(defn teleport
+  "Return a random coord (not equal to original coord)."
+  [coord]
+  (first (filter #(not= coord %) (repeatedly rand-coord))))
+
 (defn move-player
+  "Handle a player action (:wait, :teleport, or a direction keyword)
+  and return a new board, or nil if the action was unrecognized or
+  would move the player out of bounds."
   [board action]
-  {:pre  [(contains? #{:n :s :e :w :ne :nw :se :sw :wait :teleport} action)]}
-  :FIXME
-)
+  (case action
+        :wait board
+        :teleport (assoc board :player (teleport (:player board)))
+        (:n :s :e :w :ne :nw :se :sw)
+          (let [new-player (move-coord (:player board) action)]
+            (if (coord-in-bounds? new-player)
+              (assoc board :player new-player)
+              nil))
+        nil))
 
 (defn move-towards
   "Given two coordinates, return a new coord that gets source one step closer to target.

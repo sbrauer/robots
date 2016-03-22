@@ -85,6 +85,24 @@
                   :piles #{[5 3] [58 21]}}]
     (is (= expected (move-robots sample-board)))))
 
+(deftest test-move-player
+  (testing :wait
+    (is (= sample-board (move-player sample-board :wait))))
+  (testing :teleport
+    (is (let [new-board (move-player sample-board :teleport)
+              new-player (:player new-board)]
+          (and (coord-in-bounds? new-player) (not= new-player (:player sample-board))))))
+  (testing :n
+    (is (= (assoc sample-board :player [5 1]) (move-player sample-board :n))))
+  (testing :s
+    (is (= (assoc sample-board :player [5 3]) (move-player sample-board :s))))
+  (testing :e
+    (is (= (assoc sample-board :player [6 2]) (move-player sample-board :e))))
+  (testing :w
+    (is (= (assoc sample-board :player [4 2]) (move-player sample-board :w))))
+  (testing "out of bounds"
+    (is (= nil (move-player (assoc sample-board :player [0 0]) :w)))))
+
 (deftest test-player-alive?
   (testing "Player is alive"
     (is (= true (player-alive? sample-board))))
