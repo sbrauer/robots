@@ -1,5 +1,4 @@
 (ns robots.core
-  (:gen-class)
   (:require clojure.set))
 
 (def ^:const cols 59)
