@@ -38,6 +38,14 @@
   ;; Already at target...
   (is (= [5 2] (move-towards [5 2] [5 2]))))
 
+(deftest test-coord-in-bounds?
+  (is (= true (coord-in-bounds? [0 0])))
+  (is (= true (coord-in-bounds? [58 21])))
+  (is (= true (coord-in-bounds? [5 5])))
+  (is (= false (coord-in-bounds? [-1 -1])))
+  (is (= false (coord-in-bounds? [58 22])))
+  (is (= false (coord-in-bounds? [59 21]))))
+
 (def sample-board {:player [5 2]
                    :robots #{[0 0] [7 1] [2 2] [4 4] [5 4]}
                    :piles #{[58 21]}})

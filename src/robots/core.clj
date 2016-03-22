@@ -26,13 +26,15 @@
 
 (defn move-coord
   [coord dir]
-  {:pre  [(contains? #{:n :s :e :w :ne :nw :se :sw} dir)]}
   (map + coord (dir->offset dir)))
 
-(defn coord-in-bounds
+(defn coord-in-bounds?
   "Return true if the given coord is within the bounds specified by cols and rows."
-  [coord]
-  :FIXME)
+  [[x y]]
+  (and (<= 0 x)
+       (<= 0 y)
+       (< x cols)
+       (< y rows)))
 
 (defn empty-grid
   []
