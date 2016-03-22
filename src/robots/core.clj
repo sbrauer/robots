@@ -16,8 +16,8 @@
   (take n (concat coll (repeat padding))))
 
 ; Coords are 2-item vectors [x y] (where top-left is [0 0])
-; A "board" is a map with the coords of the :player, :robots, and :piles,
-; as well as a boolean :alive indicating the player's status.
+; A "board" is a map with the coords of the :player, :robots, and :piles
+; (where :robots and :piles are sets).
 ; A "grid" is a vector of characters representing the printable board.
 
 (defn dir->offset
@@ -78,13 +78,6 @@
   [grid piles]
   (reduce add-pile-to-grid grid piles))
 
-(defn board->grid
-  [board]
-  (-> (empty-grid)
-      (add-robots-to-grid (:robots board))
-      (add-piles-to-grid (:piles board))
-      (add-player-to-grid (:player board) (:alive board))))
-
 ;; This implementation assumes that the grid represents a board with a single alive player.
 (defn grid->board
   [grid]
@@ -94,7 +87,6 @@
                      (fn [idx ch] [(grid-idx->coord idx) ch])
                      grid))]
     {:player (first (first (char-map player-char)))
-     :alive true
      :robots (set (map first (char-map robot-char)))
      :piles (set (map first (char-map pile-char)))}))
 
@@ -107,6 +99,17 @@
   "Return a string representing the grid (suitable for printing)"
   [grid]
   (apply str (interpose "\n" (grid->vos grid))))
+
+(defn player-alive?
+  [board]
+  (not (contains? (clojure.set/union (:piles board) (:robots board)) (:player board))))
+
+(defn board->grid
+  [board]
+  (-> (empty-grid)
+      (add-robots-to-grid (:robots board))
+      (add-piles-to-grid (:piles board))
+      (add-player-to-grid (:player board) (player-alive? board))))
 
 (defn board->str
   [board]
@@ -140,7 +143,7 @@
         new-piles (clojure.set/union (:piles board) (set (get robots-by-pileup true)))
         new-robots (clojure.set/difference (set (get robots-by-pileup false)) new-piles)
        ]
-    {:robots new-robots :piles new-piles :player (:player board) :alive true}))
+    {:robots new-robots :piles new-piles :player (:player board)}))
 
 (defn -main
   "I don't do a whole lot ... yet."
