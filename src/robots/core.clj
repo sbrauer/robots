@@ -105,6 +105,10 @@
   [grid]
   (apply str (interpose "\n" (grid->vos grid))))
 
+(defn rand-board
+  [num-robots]
+  (grid->board (rand-grid num-robots)))
+
 (defn player-alive?
   [board]
   (not (contains? (clojure.set/union (:piles board) (:robots board)) (:player board))))
