@@ -135,16 +135,19 @@
 
 (defn move-robots
   [board]
-  (let [new-robot-coords (map (partial move-towards (:player board)) (:robots board))
-        robots-by-pileup (->> (frequencies new-robot-coords)
-                              (map (fn [[coord cnt]] [coord (< 1 cnt)]))
-                              (group-by second)
-                              (map #(vector (first %) (map first (second %))))
-                              (into {}))
-        new-piles (clojure.set/union (:piles board) (set (get robots-by-pileup true)))
-        new-robots (clojure.set/difference (set (get robots-by-pileup false)) new-piles)
-       ]
-    {:robots new-robots :piles new-piles :player (:player board)}))
+  (let [robots-by-pileup?
+          (->> (:robots board)
+               (map (partial move-towards (:player board)))
+               (frequencies)
+               (map (fn [[coord cnt]] [coord (< 1 cnt)]))
+               (group-by second)
+               (map #(vector (first %) (map first (second %))))
+               (into {}))]
+    (assoc board
+      :robots (clojure.set/difference
+                (set (get robots-by-pileup? false)) (:piles board))
+      :piles  (clojure.set/union
+                (set (get robots-by-pileup? true))  (:piles board)))))
 
 (defn -main
   "I don't do a whole lot ... yet."
