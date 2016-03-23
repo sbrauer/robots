@@ -101,10 +101,29 @@
   [grid]
   (vec (map #(apply str %) (partition cols grid))))
 
+(defn border
+  []
+  (apply str (flatten [\+ (repeat cols \-) \+])))
+
 (defn grid->str
   "Return a string representing the grid (suitable for printing)"
-  [grid]
-  (apply str (interpose "\n" (grid->vos grid))))
+  [grid border?]
+  (if border?
+    (apply str (interpose "\n"
+                          (flatten [(border)
+                                    (map #(format "|%s|" %) (grid->vos grid))
+                                    (border)])))
+    (apply str (interpose "\n" (grid->vos grid)))))
+
+(defn grid->str
+  "Return a string representing the grid (suitable for printing)"
+  [grid border?]
+  (apply str (interpose "\n"
+    (if border?
+      (flatten [(border)
+                (map #(format "|%s|" %) (grid->vos grid))
+                (border)])
+      (grid->vos grid)))))
 
 (defn rand-board
   [num-robots]
@@ -126,8 +145,8 @@
       (add-player-to-grid (:player board) (player-alive? board))))
 
 (defn board->str
-  [board]
-  (grid->str (board->grid board)))
+  [board border?]
+  (grid->str (board->grid board) border?))
 
 (defn board->vos
   "Return a vector of strings representing the board"
@@ -240,7 +259,8 @@
   [level board]
   (clear-screen)
   (println (str "Level: " level))
-  (println (board->str board)))
+  (println (board->str board true))
+  (when-not (player-alive? board) (println "*** THE ROBOTS GOT YOU! ***")))
 
 (defn play-level
   "Return true if player completes level, or false if player dies."
