@@ -1,5 +1,6 @@
 (ns robots.core
-  (:require clojure.set))
+  (:require clojure.set)
+  (:import  [jline.console ConsoleReader]))
 
 (def ^:const cols 59)
 (def ^:const rows 22)
@@ -113,6 +114,10 @@
   [board]
   (not (contains? (clojure.set/union (:piles board) (:robots board)) (:player board))))
 
+(defn robots-alive?
+  [board]
+  (pos? (count (:robots board))))
+
 (defn board->grid
   [board]
   (-> (empty-grid)
@@ -171,7 +176,101 @@
       :piles  (clojure.set/union
                 (set (get robots-by-pileup? true))  (:piles board)))))
 
+(defn level->robots
+  [level]
+  (* 10 level))
+
+(defn get-key
+  []
+  (let [cr (ConsoleReader.)
+            keyint (.readCharacter cr)]
+    (char keyint)))
+
+(defn clear-screen
+  []
+  (print "\u001b[2J")
+  (print "\u001B[0;0f"))
+
+(defn play-again?
+  []
+  (print "Another game? [yn] ")
+  (flush)
+  (let [k (get-key)]
+    (println k)
+    (case k
+      \y true
+      \n false
+      (recur))))
+
+(defn get-raw-action
+  "Wait for any key and return the corresponding action keyword (or nil if unrecognized key)."
+  []
+  (case (get-key)
+    (\space \. \5) :wait
+    (\t \0) :teleport
+    (\k \8) :n
+    (\j \2) :s
+    (\h \4) :w
+    (\l \6) :e
+    (\u \9) :ne
+    (\n \3) :se
+    (\y \7) :nw
+    (\b \1) :sw
+    nil))
+
+(defn get-action
+  "Wait for user to press a key recognized as an action. Return the action keyword."
+  []
+  (first (filter identity (repeatedly get-raw-action))))
+
+(defn handle-player-move
+  "Wait for user to enter a valid action key that results in an in-bounds, non-fatal
+  (except for teleport) move and return the new board state."
+  [board]
+  (loop []
+    (let [action (get-action)
+          new-board (move-player board action)]
+      (if (and new-board
+               (or (player-alive? new-board)
+                   (= :teleport action)))
+        new-board
+        (recur)))))
+
+(defn render-game
+  [level board]
+  (clear-screen)
+  (println (str "Level: " level))
+  (println (board->str board)))
+
+(defn play-level
+  "Return true if player completes level, or false if player dies."
+  [level]
+  (let
+    [board (rand-board (level->robots level))]
+    (loop [board board]
+      (render-game level board)
+      (let [new-board (handle-player-move board)]
+        (render-game level new-board)
+        (if (player-alive? new-board)
+          (let [new-board (move-robots new-board)]
+            (render-game level new-board)
+            (if (player-alive? new-board)
+              (if (robots-alive? new-board)
+                (recur new-board)
+                true)
+              false))
+          false)))))
+
+(defn play-game
+  []
+  (loop [level 1]
+    (if (play-level level)
+      (recur (inc level)))))
+
 (defn -main
-  "I don't do a whole lot ... yet."
+  "Would you like to play a game?"
   [& args]
-  (println "Hello, World!"))
+  (loop []
+    (play-game)
+    (if (play-again?) (recur)))
+  (println "Goodbye!"))
