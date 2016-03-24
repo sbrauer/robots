@@ -255,10 +255,9 @@
   [level]
   (let
     [board (rand-board (level->robots level))]
+    (render-game level board)
     (loop [board board]
-      (render-game level board)
       (let [new-board (handle-player-move board)]
-        (render-game level new-board)
         (if (player-alive? new-board)
           (let [new-board (move-robots new-board)]
             (render-game level new-board)
@@ -267,7 +266,7 @@
                 (recur new-board)
                 true)
               false))
-          false)))))
+          (or (render-game level new-board) false))))))
 
 (defn play-game
   []
