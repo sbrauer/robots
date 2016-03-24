@@ -210,13 +210,10 @@
   (print "\u001b[2J")
   (print "\u001B[0;0f"))
 
-(defn play-again?
+(defn yes-or-no?
   []
-  (print "Another game? [yn] ")
-  (flush)
-  (let [k (get-key)]
-    (println k)
-    (case k
+  (loop []
+    (case (get-key)
       \y true
       \n false
       (recur))))
@@ -260,7 +257,7 @@
   (clear-screen)
   (println (str "Level: " level))
   (println (board->str board true))
-  (when-not (player-alive? board) (println "*** THE ROBOTS GOT YOU! ***")))
+  (when-not (player-alive? board) (println "*** OH NO! KILLED BY A ROBOT! GAME OVER ***")))
 
 (defn play-level
   "Return true if player completes level, or false if player dies."
@@ -292,5 +289,7 @@
   [& args]
   (loop []
     (play-game)
-    (if (play-again?) (recur)))
+    (print "Play again [yn] ")
+    (flush)
+    (if (yes-or-no?) (recur)))
   (println "Goodbye!"))
