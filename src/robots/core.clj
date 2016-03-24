@@ -218,7 +218,7 @@
       \n false
       (recur))))
 
-(defn get-raw-action
+(defn get-action
   "Wait for any key and return the corresponding action keyword (or nil if unrecognized key)."
   []
   (case (get-key)
@@ -234,23 +234,14 @@
     (\b \1) :sw
     nil))
 
-(defn get-action
-  "Wait for user to press a key recognized as an action. Return the action keyword."
-  []
-  (first (filter identity (repeatedly get-raw-action))))
+(defn til-truthy
+  [f]
+  (first (filter identity (repeatedly f))))
 
 (defn handle-player-move
-  "Wait for user to enter a valid action key that results in an in-bounds, non-fatal
-  (except for teleport) move and return the new board state."
+  "Wait for user to enter a valid action key and return the new board state."
   [board]
-  (loop []
-    (let [action (get-action)
-          new-board (move-player board action)]
-      (if (and new-board
-               (or (player-alive? new-board)
-                   (= :teleport action)))
-        new-board
-        (recur)))))
+  (til-truthy #(move-player board (til-truthy get-action))))
 
 (defn render-game
   [level board]
