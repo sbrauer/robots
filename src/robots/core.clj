@@ -153,26 +153,6 @@
   [board]
   (grid->vos (board->grid board)))
 
-(defn teleport
-  "Return a random coord (not equal to original coord)."
-  [coord]
-  (first (filter #(not= coord %) (repeatedly rand-coord))))
-
-(defn move-player
-  "Handle a player action (:wait, :teleport, or a direction keyword)
-  and return a new board, or nil if the action was unrecognized or
-  would move the player out of bounds."
-  [board action]
-  (case action
-        :wait board
-        :teleport (assoc board :player (teleport (:player board)))
-        (:n :s :e :w :ne :nw :se :sw)
-          (let [new-player (move-coord (:player board) action)]
-            (if (coord-in-bounds? new-player)
-              (assoc board :player new-player)
-              nil))
-        nil))
-
 (defn move-towards
   "Given two coordinates, return a new coord that gets source one step closer to target.
   (There's no change if source is already equal to target.)"
@@ -194,6 +174,26 @@
                 (set (get robots-by-pileup? false)) (:piles board))
       :piles  (clojure.set/union
                 (set (get robots-by-pileup? true))  (:piles board)))))
+
+(defn teleport
+  "Return a random coord (not equal to original coord)."
+  [coord]
+  (first (filter #(not= coord %) (repeatedly rand-coord))))
+
+(defn move-player
+  "Handle a player action (:wait, :teleport, or a direction keyword)
+  and return a new board, or nil if the action was unrecognized or
+  would move the player out of bounds."
+  [board action]
+  (case action
+        :wait board
+        :teleport (assoc board :player (teleport (:player board)))
+        (:n :s :e :w :ne :nw :se :sw)
+          (let [new-player (move-coord (:player board) action)]
+            (if (coord-in-bounds? new-player)
+              (assoc board :player new-player)
+              nil))
+        nil))
 
 (defn level->robots
   [level]
@@ -232,11 +232,66 @@
     (\n \3) :se
     (\y \7) :nw
     (\b \1) :sw
+    \z      :undo
+    \x      :redo
     nil))
 
 (defn til-truthy
   [f]
   (first (filter identity (repeatedly f))))
+
+;; History undo/redo stuff...
+
+; FIXME: after getting it working, consider DRYing up undo and redo.
+(defn undo
+  [state undos redos]
+  (println "In undo - undos:" undos "redos:" redos)
+  (let [other (peek undos)]
+    (if other
+      {:state other :undos (pop undos) :redos (conj redos state)}
+      {:state state :undos undos :redos redos})))
+
+(defn redo
+  [state undos redos]
+  (println "In redo - undos:" undos "redos:" redos)
+  (let [other (peek redos)]
+    (if other
+      {:state other :redos (pop redos) :undos (conj undos state)}
+      {:state state :undos undos :redos redos})))
+
+;; FIXME: original implementation; works but clunky (client code must pass undos/redos around)
+(defn historize
+  [next-state-f state action undos redos]
+  (case action
+    :undo (undo state undos redos)
+    :redo (redo state undos redos)
+    (let [new-state (next-state-f state action)]
+      {:state new-state
+       :undos (conj undos state)
+       :redos []})))
+
+(defn historize
+  "Decorates the given function with undo/redo.
+  f is a function that takes [state action]
+  and returns a new state.
+  Returns a function with the same arguments that intercepts
+  the actions :undo and :redo and returns the corresponding state."
+  [f]
+  (let [history (atom {:undos []
+                       :redos []})]
+    (fn
+      [orig-state action]
+      (let [{:keys [state undos redos]}
+            (case action
+              :undo (undo orig-state (:undos @history) (:redos @history))
+              :redo (redo orig-state (:undos @history) (:redos @history))
+              (let [new-state (f orig-state action)]
+                {:state new-state
+                 :undos (conj (:undos @history) orig-state)
+                 :redos []}))]
+            (when (not= state orig-state)
+              (swap! history #(assoc % :undos undos :redos redos)))
+            state))))
 
 (defn handle-player-move
   "Wait for user to enter a valid action key and return the new board state."
