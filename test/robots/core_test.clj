@@ -100,10 +100,8 @@
     (is (= (assoc sample-board :player [6 2]) (move-player sample-board :e))))
   (testing :w
     (is (= (assoc sample-board :player [4 2]) (move-player sample-board :w))))
-  (testing "out of bounds"
-    (is (= nil (move-player (assoc sample-board :player [0 0]) :w))))
   (testing "unrecognized action"
-    (is (= nil (move-player sample-board :foo)))))
+    (is (= sample-board (move-player sample-board :foo)))))
 
 (deftest test-player-alive?
   (testing "Player is alive"

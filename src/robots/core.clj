@@ -133,9 +133,13 @@
   [board]
   (not (contains? (clojure.set/union (:piles board) (:robots board)) (:player board))))
 
+(defn count-robots-alive
+  [board]
+  (count (:robots board)))
+
 (defn robots-alive?
   [board]
-  (pos? (count (:robots board))))
+  (pos? (count-robots-alive board)))
 
 (defn board->grid
   [board]
@@ -182,18 +186,17 @@
 
 (defn move-player
   "Handle a player action (:wait, :teleport, or a direction keyword)
-  and return a new board, or nil if the action was unrecognized or
-  would move the player out of bounds."
+  and return a new board."
   [board action]
   (case action
         :wait board
         :teleport (assoc board :player (teleport (:player board)))
         (:n :s :e :w :ne :nw :se :sw)
           (let [new-player (move-coord (:player board) action)]
-            (if (coord-in-bounds? new-player)
-              (assoc board :player new-player)
-              nil))
-        nil))
+            (assert (coord-in-bounds? new-player))
+            (assoc board :player new-player))
+        ;; Default (unrecognized action): just return the same board
+        board))
 
 (defn level->robots
   [level]
@@ -236,6 +239,11 @@
     \x      :redo
     nil))
 
+(defn dir-action?
+  "Returns true if the given action corresponds to a direction."
+  [action]
+  (not (not (dir->offset action))))
+
 (defn til-truthy
   [f]
   (first (filter identity (repeatedly f))))
@@ -245,7 +253,6 @@
 ; FIXME: after getting it working, consider DRYing up undo and redo.
 (defn undo
   [state undos redos]
-  (println "In undo - undos:" undos "redos:" redos)
   (let [other (peek undos)]
     (if other
       {:state other :undos (pop undos) :redos (conj redos state)}
@@ -253,22 +260,10 @@
 
 (defn redo
   [state undos redos]
-  (println "In redo - undos:" undos "redos:" redos)
   (let [other (peek redos)]
     (if other
       {:state other :redos (pop redos) :undos (conj undos state)}
       {:state state :undos undos :redos redos})))
-
-;; FIXME: original implementation; works but clunky (client code must pass undos/redos around)
-(defn historize
-  [next-state-f state action undos redos]
-  (case action
-    :undo (undo state undos redos)
-    :redo (redo state undos redos)
-    (let [new-state (next-state-f state action)]
-      {:state new-state
-       :undos (conj undos state)
-       :redos []})))
 
 (defn historize
   "Decorates the given function with undo/redo.
@@ -293,35 +288,56 @@
               (swap! history #(assoc % :undos undos :redos redos)))
             state))))
 
-(defn handle-player-move
-  "Wait for user to enter a valid action key and return the new board state."
-  [board]
-  (til-truthy #(move-player board (til-truthy get-action))))
-
 (defn render-game
   [level board]
   (clear-screen)
-  (println (str "Level: " level))
+  (println (str "Level: " level " - Robots: " (count-robots-alive board) " of " (level->robots level)))
   (println (board->str board true))
   (when-not (player-alive? board) (println "*** OH NO! KILLED BY A ROBOT! GAME OVER ***")))
+
+(defn valid-action?
+  [action board]
+  (if action
+    (if (dir-action? action)
+      (coord-in-bounds? (move-coord (:player board) action))
+      true)
+    false))
+
+(defn validate-action
+  "Returns action if it's valid; else returns nil."
+  [action board]
+  (if (valid-action? action board)
+    action
+    nil))
+
+(defn get-valid-action
+  "Won't return until it can return a valid action."
+  [board]
+  (til-truthy #(validate-action (get-action) board)))
+
+(defn play-turn
+  [board action]
+  (let [new-board (move-player board action)]
+    (if (player-alive? new-board)
+      (move-robots new-board)
+      new-board)))
 
 (defn play-level
   "Return true if player completes level, or false if player dies."
   [level]
   (let
-    [board (rand-board (level->robots level))]
+    [board (rand-board (level->robots level))
+     ;; Wrap play-turn with history support (undo and redo)
+     play-turn (historize play-turn)]
     (render-game level board)
     (loop [board board]
-      (let [new-board (handle-player-move board)]
+      (let [new-board (play-turn board (get-valid-action board))]
+        (render-game level new-board)
         (if (player-alive? new-board)
-          (let [new-board (move-robots new-board)]
-            (render-game level new-board)
-            (if (player-alive? new-board)
-              (if (robots-alive? new-board)
-                (recur new-board)
-                true)
-              false))
-          (or (render-game level new-board) false))))))
+          (if (robots-alive? new-board)
+            (recur new-board)
+            true)
+          false)))))
 
 (defn play-game
   []
