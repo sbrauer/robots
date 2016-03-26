@@ -222,7 +222,7 @@
       (recur))))
 
 (defn get-action
-  "Wait for any key and return the corresponding action keyword (or nil if unrecognized key)."
+  "Wait for a key press that corresponds to an action and return the action keyword."
   []
   (case (get-key)
     (\space \. \5) :wait
@@ -237,7 +237,7 @@
     (\b \1) :sw
     \z      :undo
     \x      :redo
-    nil))
+    (recur)))
 
 (defn dir-action?
   "Returns true if the given action corresponds to a direction."
