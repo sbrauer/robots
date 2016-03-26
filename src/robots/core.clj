@@ -250,27 +250,28 @@
 
 ;; History undo/redo stuff...
 
-; FIXME: after getting it working, consider DRYing up undo and redo.
 (defn undo
-  [state undos redos]
-  (let [other (peek undos)]
-    (if other
-      {:state other :undos (pop undos) :redos (conj redos state)}
-      {:state state :undos undos :redos redos})))
+  [current-state undos redos]
+  (let [old-state (peek undos)]
+    (if old-state
+      {:state old-state :undos (pop undos) :redos (conj redos current-state)}
+      {:state current-state :undos undos :redos redos})))
 
 (defn redo
-  [state undos redos]
-  (let [other (peek redos)]
-    (if other
-      {:state other :redos (pop redos) :undos (conj undos state)}
-      {:state state :undos undos :redos redos})))
+  [current-state undos redos]
+  (let [old-state (peek redos)]
+    (if old-state
+      {:state old-state :redos (pop redos) :undos (conj undos current-state)}
+      {:state current-state :undos undos :redos redos})))
 
 (defn historize
   "Decorates the given function with undo/redo.
   f is a function that takes [state action]
   and returns a new state.
   Returns a function with the same arguments that intercepts
-  the actions :undo and :redo and returns the corresponding state."
+  the actions :undo and :redo and returns the corresponding state.
+  Note that instead of returning the new state itself, the decorated
+  function returns a hash with the keys :state, :undos and :redos"
   [f]
   (let [history (atom {:undos []
                        :redos []})]
@@ -286,12 +287,12 @@
                  :redos []}))]
             (when (not= state orig-state)
               (swap! history #(assoc % :undos undos :redos redos)))
-            state))))
+            (assoc @history :state state)))))
 
 (defn render-game
-  [level board]
+  [level board moves]
   (clear-screen)
-  (println (str "Level: " level " - Robots: " (count-robots-alive board) " of " (level->robots level)))
+  (println (str "Level: " level " - Robots: " (count-robots-alive board) " of " (level->robots level) " - Moves: " moves))
   (println (board->str board true))
   (when-not (player-alive? board) (println "*** OH NO! KILLED BY A ROBOT! GAME OVER ***")))
 
@@ -328,11 +329,12 @@
   (let
     [board (rand-board (level->robots level))
      ;; Wrap play-turn with history support (undo and redo)
-     play-turn (historize play-turn)]
-    (render-game level board)
+     play-turn-h (historize play-turn)]
+    (render-game level board 0)
     (loop [board board]
-      (let [new-board (play-turn board (get-valid-action board))]
-        (render-game level new-board)
+      (let [{new-board :state undos :undos redos :redos}
+              (play-turn-h board (get-valid-action board))]
+        (render-game level new-board (count undos))
         (if (player-alive? new-board)
           (if (robots-alive? new-board)
             (recur new-board)
