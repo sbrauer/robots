@@ -11,8 +11,6 @@
 (def ^:const pile-char \*)
 (def ^:const empty-char \space)
 
-(def ^:const status-spacer "        ")
-
 (defn pad
   [coll n padding]
   (take n (concat coll (repeat padding))))
@@ -103,19 +101,16 @@
   [grid]
   (vec (map #(apply str %) (partition cols grid))))
 
-(defn border
-  []
-  (apply str (flatten [\+ (repeat cols \-) \+])))
+(defn add-border-to-vos
+  [vos]
+  (let [width (count (first vos))
+        border (apply str (flatten [\+ (repeat width \-) \+]))]
+    (vec (concat [border] (map #(format "|%s|" %) vos) [border]))))
 
 (defn grid->str
   "Return a string representing the grid (suitable for printing)"
-  [grid border?]
-  (apply str (interpose "\n"
-    (if border?
-      (flatten [(border)
-                (map #(format "|%s|" %) (grid->vos grid))
-                (border)])
-      (grid->vos grid)))))
+  [grid]
+  (apply str (interpose "\n" (grid->vos grid))))
 
 (defn rand-board
   [num-robots]
@@ -145,8 +140,8 @@
       (add-player-to-grid (:player board) (player-alive? board))))
 
 (defn board->str
-  [board border?]
-  (grid->str (board->grid board) border?))
+  [board]
+  (grid->str (board->grid board)))
 
 (defn board->vos
   "Return a vector of strings representing the board"
@@ -285,22 +280,37 @@
             (assoc @history :state state)))))
 
 (defn player-screen-coord
-  "Returns coord of player on the screen (accounting for status bar and border)."
+  "Returns coord of player on the screen (accounting for border)."
   [board]
-  (map + (:player board) [2 3]))
+  (map + (:player board) [2 2]))
+
+(defn append-to-vos
+  "vos is a vector of strings.
+  appends is a seq of pairs where first item is an index int and second is a string to append at that index.
+  Returns a new vector of strings with the appends applied."
+  [vos appends]
+  (reduce
+    (fn
+      [coll [idx s]]
+      (assoc coll idx (str (nth coll idx) s)))
+    vos
+    appends))
 
 (defn render-game
-  [level board moves]
+  [board level moves]
   (clear-screen)
-  (println (str "Level " level status-spacer
-                 moves " moves" status-spacer
-                 (count-robots-alive board) "/" (level->robots level) " robots" status-spacer
-                 (count-piles board) " piles"))
-  (println (board->str board true))
-  (when (player-alive? board)
-    (print "Move HJKLYUBN or numpad [T]teleport [space]wait [Z]undo [X]redo")
-    (move-cursor (player-screen-coord board)))
-  (flush))
+  (let [board-vos (add-border-to-vos (board->vos board))
+        alive? (player-alive? board)
+        appends [[1 (str " Level " level)]
+                 [3 (str " Moves " moves)]
+                 [5 (str " Robots " (count-robots-alive board) "/" (level->robots level))]
+                 [7 (str " Piles " (count-piles board))]
+                 [9 (if alive? " Alive :)" " *** DEAD ***")]]]
+    (println (apply str (interpose "\n" (append-to-vos board-vos appends))))
+    (when alive?
+      (print "Move HJKLYUBN or numpad [T]teleport [space]wait [Z]undo [X]redo")
+      (move-cursor (player-screen-coord board))))
+    (flush))
 
 (defn valid-action?
   "Is the given action valid (non-nil and (if directional) in-bounds)."
@@ -337,7 +347,7 @@
   "Prompt user for next action.
   Returns one of :undo :random :retry :newgame :quit"
   []
-  (print "**DEATH!** [Z]Undo, [T]ry again, [R]andom board, [N]ew game, [Q]uit? ")
+  (print "[Z]Undo, [T]ry again, [R]andom board, [N]ew game, [Q]uit? ")
   (flush)
   (get-post-death-action))
 
@@ -351,13 +361,13 @@
 (defn play-board
   "Returns one of :random :retry :success :newgame :quit"
   [board level]
-  (render-game level board 0)
+  (render-game board level 0)
   ;; Wrap play-turn with history support (undo and redo)
   (let [play-turn-h (historize play-turn)]
     (loop [board board]
       (let [{new-board :state undos :undos}
               (play-turn-h board (get-valid-action board))]
-        (render-game level new-board (count undos))
+        (render-game new-board level (count undos))
         (if (player-alive? new-board)
           (if (robots-alive? new-board)
             (recur new-board)
@@ -365,7 +375,7 @@
           (let [result (handle-death)]
             (if (= result :undo)
               (let [{new-board :state undos :undos} (play-turn-h new-board :undo)]
-                (render-game level new-board (count undos))
+                (render-game new-board level (count undos))
                 (recur new-board))
               result)))))))
 
