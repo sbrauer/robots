@@ -133,6 +133,10 @@
   [board]
   (not (contains? (clojure.set/union (:piles board) (:robots board)) (:player board))))
 
+(defn count-piles
+  [board]
+  (count (:piles board)))
+
 (defn count-robots-alive
   [board]
   (count (:robots board)))
@@ -189,37 +193,32 @@
   and return a new board."
   [board action]
   (case action
-        :wait board
         :teleport (assoc board :player (teleport (:player board)))
         (:n :s :e :w :ne :nw :se :sw)
           (let [new-player (move-coord (:player board) action)]
             (assert (coord-in-bounds? new-player))
             (assoc board :player new-player))
-        ;; Default (unrecognized action): just return the same board
+        ;; Default (unrecognized action or :wait) just return the same board.
         board))
 
 (defn level->robots
   [level]
   (* 10 level))
 
-(defn get-key
-  []
-  (let [cr (ConsoleReader.)
-            keyint (.readCharacter cr)]
-    (char keyint)))
+(defn level->rand-board
+  [level]
+  (rand-board (level->robots level)))
 
 (defn clear-screen
   []
   (print "\u001b[2J")
   (print "\u001B[0;0f"))
 
-(defn yes-or-no?
+(defn get-key
   []
-  (loop []
-    (case (get-key)
-      \y true
-      \n false
-      (recur))))
+  (let [cr (ConsoleReader.)
+            keyint (.readCharacter cr)]
+    (char keyint)))
 
 (defn get-action
   "Wait for a key press that corresponds to an action and return the action keyword."
@@ -242,7 +241,7 @@
 (defn dir-action?
   "Returns true if the given action corresponds to a direction."
   [action]
-  (not (not (dir->offset action))))
+  (boolean (dir->offset action)))
 
 (defn til-truthy
   [f]
@@ -292,7 +291,7 @@
 (defn render-game
   [level board moves]
   (clear-screen)
-  (println (str "Level: " level " - Robots: " (count-robots-alive board) " of " (level->robots level) " - Moves: " moves))
+  (println (str "Level: " level " - Robots: " (count-robots-alive board) " of " (level->robots level) " - Piles " (count-piles board) " - Moves: " moves))
   (println (board->str board true))
   (when-not (player-alive? board) (println "*** OH NO! KILLED BY A ROBOT! GAME OVER ***")))
 
@@ -323,36 +322,70 @@
       (move-robots new-board)
       new-board)))
 
-(defn play-level
-  "Return true if player completes level, or false if player dies."
-  [level]
-  (let
-    [board (rand-board (level->robots level))
-     ;; Wrap play-turn with history support (undo and redo)
-     play-turn-h (historize play-turn)]
-    (render-game level board 0)
+(defn get-post-death-action
+  []
+  (case (get-key)
+    \z :undo
+    \t :retry
+    \r :random
+    \n :newgame
+    \q :quit
+    (recur)))
+
+(defn handle-death
+  "Prompt user for next action.
+  Returns one of :undo :random :retry :newgame :quit"
+  []
+  (print "[Z] Undo, [T]ry again, [R]andom board, [N]ew game, [Q]uit?")
+  (flush)
+  (get-post-death-action))
+
+(defn play-board
+  "Returns one of :random :retry :success :newgame :quit"
+  [board level]
+  (render-game level board 0)
+  ;; Wrap play-turn with history support (undo and redo)
+  (let [play-turn-h (historize play-turn)]
     (loop [board board]
-      (let [{new-board :state undos :undos redos :redos}
+      (let [{new-board :state undos :undos}
               (play-turn-h board (get-valid-action board))]
         (render-game level new-board (count undos))
         (if (player-alive? new-board)
           (if (robots-alive? new-board)
             (recur new-board)
-            true)
-          false)))))
+            :success)
+          (let [result (handle-death)]
+            (if (= result :undo)
+              (let [{new-board :state undos :undos} (play-turn-h new-board :undo)]
+                (render-game level new-board (count undos))
+                (recur new-board))
+              result)))))))
+
+(defn play-level
+  "Returns one of :success :newgame :quit"
+  [level]
+  (loop
+    [board (level->rand-board level)]
+    (let [result (play-board board level)]
+      (case result
+        :retry (recur board) ;; Try the same board again.
+        :random (recur (level->rand-board level)) ;; Randomize a new board for this level.
+        ;; presumably result is :success :newgame or :quit
+        result))))
 
 (defn play-game
+  "Return true until player quits."
   []
   (loop [level 1]
-    (if (play-level level)
-      (recur (inc level)))))
+    (case (play-level level)
+      :success (recur (inc level))
+      :newgame true
+      ;; presumably :quit
+      false)))
 
 (defn -main
   "Would you like to play a game?"
   [& args]
   (loop []
-    (play-game)
-    (print "Play again [yn] ")
-    (flush)
-    (if (yes-or-no?) (recur)))
-  (println "Goodbye!"))
+    (if (play-game) (recur)))
+  (println "\nGoodbye!"))
