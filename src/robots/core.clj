@@ -55,7 +55,7 @@
       empty-char)))
 
 (defn coord->grid-idx
-  [x y]
+  [[x y]]
   (+ x (* y cols)))
 
 (defn grid-idx->coord
@@ -63,8 +63,8 @@
   [(rem idx cols) (quot idx cols)])
 
 (defn add-char-to-grid
-  [grid [x y] ch]
-  (assoc grid (coord->grid-idx x y) ch))
+  [grid coord ch]
+  (assoc grid (coord->grid-idx coord) ch))
 
 (defn add-player-to-grid
   [grid coords alive?]
@@ -201,10 +201,14 @@
   [level]
   (rand-board (level->robots level)))
 
+(defn move-cursor
+  [[x y]]
+  (print (str "\u001b[" y ";" x "f")))
+
 (defn clear-screen
   []
   (print "\u001b[2J")
-  (print "\u001B[0;0f"))
+  (move-cursor [0 0]))
 
 (defn get-key
   []
@@ -280,6 +284,11 @@
               (swap! history #(assoc % :undos undos :redos redos)))
             (assoc @history :state state)))))
 
+(defn player-screen-coord
+  "Returns coord of player on the screen (accounting for status bar and border)."
+  [board]
+  (map + (:player board) [2 3]))
+
 (defn render-game
   [level board moves]
   (clear-screen)
@@ -287,7 +296,11 @@
                  moves " moves" status-spacer
                  (count-robots-alive board) "/" (level->robots level) " robots" status-spacer
                  (count-piles board) " piles"))
-  (println (board->str board true)))
+  (println (board->str board true))
+  (when (player-alive? board)
+    (print "Move HJKLYUBN or numpad [T]teleport [space]wait [Z]undo [X]redo")
+    (move-cursor (player-screen-coord board)))
+  (flush))
 
 (defn valid-action?
   "Is the given action valid (non-nil and (if directional) in-bounds)."
@@ -324,8 +337,7 @@
   "Prompt user for next action.
   Returns one of :undo :random :retry :newgame :quit"
   []
-  (println "*** OH NO! KILLED BY A ROBOT! GAME OVER ***")
-  (print "[Z] Undo, [T]ry again, [R]andom board, [N]ew game, [Q]uit? ")
+  (print "**DEATH!** [Z]Undo, [T]ry again, [R]andom board, [N]ew game, [Q]uit? ")
   (flush)
   (get-post-death-action))
 
