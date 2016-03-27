@@ -110,16 +110,6 @@
 (defn grid->str
   "Return a string representing the grid (suitable for printing)"
   [grid border?]
-  (if border?
-    (apply str (interpose "\n"
-                          (flatten [(border)
-                                    (map #(format "|%s|" %) (grid->vos grid))
-                                    (border)])))
-    (apply str (interpose "\n" (grid->vos grid)))))
-
-(defn grid->str
-  "Return a string representing the grid (suitable for printing)"
-  [grid border?]
   (apply str (interpose "\n"
     (if border?
       (flatten [(border)
@@ -200,7 +190,7 @@
           (let [new-player (move-coord (:player board) action)]
             (assert (coord-in-bounds? new-player))
             (assoc board :player new-player))
-        ;; Default (unrecognized action or :wait) just return the same board.
+        ;; Default (:wait or unrecognized action) just return the same board.
         board))
 
 (defn level->robots
@@ -297,10 +287,10 @@
                  moves " moves" status-spacer
                  (count-robots-alive board) "/" (level->robots level) " robots" status-spacer
                  (count-piles board) " piles"))
-  (println (board->str board true))
-  (when-not (player-alive? board) (println "*** OH NO! KILLED BY A ROBOT! GAME OVER ***")))
+  (println (board->str board true)))
 
 (defn valid-action?
+  "Is the given action valid (non-nil and (if directional) in-bounds)."
   [action board]
   (if action
     (if (dir-action? action)
@@ -320,13 +310,6 @@
   [board]
   (til-truthy #(validate-action (get-action) board)))
 
-(defn play-turn
-  [board action]
-  (let [new-board (move-player board action)]
-    (if (player-alive? new-board)
-      (move-robots new-board)
-      new-board)))
-
 (defn get-post-death-action
   []
   (case (get-key)
@@ -341,9 +324,17 @@
   "Prompt user for next action.
   Returns one of :undo :random :retry :newgame :quit"
   []
+  (println "*** OH NO! KILLED BY A ROBOT! GAME OVER ***")
   (print "[Z] Undo, [T]ry again, [R]andom board, [N]ew game, [Q]uit? ")
   (flush)
   (get-post-death-action))
+
+(defn play-turn
+  [board action]
+  (let [new-board (move-player board action)]
+    (if (player-alive? new-board)
+      (move-robots new-board)
+      new-board)))
 
 (defn play-board
   "Returns one of :random :retry :success :newgame :quit"
@@ -373,8 +364,8 @@
     [board (level->rand-board level)]
     (let [result (play-board board level)]
       (case result
-        :retry (recur board) ;; Try the same board again.
-        :random (recur (level->rand-board level)) ;; Randomize a new board for this level.
+        :retry (recur board)
+        :random (recur (level->rand-board level))
         ;; presumably result is :success :newgame or :quit
         result))))
 
