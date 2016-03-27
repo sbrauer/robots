@@ -11,6 +11,8 @@
 (def ^:const pile-char \*)
 (def ^:const empty-char \space)
 
+(def ^:const status-spacer "        ")
+
 (defn pad
   [coll n padding]
   (take n (concat coll (repeat padding))))
@@ -291,7 +293,10 @@
 (defn render-game
   [level board moves]
   (clear-screen)
-  (println (str "Level: " level " - Robots: " (count-robots-alive board) " of " (level->robots level) " - Piles " (count-piles board) " - Moves: " moves))
+  (println (str "Level " level status-spacer
+                 moves " moves" status-spacer
+                 (count-robots-alive board) "/" (level->robots level) " robots" status-spacer
+                 (count-piles board) " piles"))
   (println (board->str board true))
   (when-not (player-alive? board) (println "*** OH NO! KILLED BY A ROBOT! GAME OVER ***")))
 
@@ -336,7 +341,7 @@
   "Prompt user for next action.
   Returns one of :undo :random :retry :newgame :quit"
   []
-  (print "[Z] Undo, [T]ry again, [R]andom board, [N]ew game, [Q]uit?")
+  (print "[Z] Undo, [T]ry again, [R]andom board, [N]ew game, [Q]uit? ")
   (flush)
   (get-post-death-action))
 
