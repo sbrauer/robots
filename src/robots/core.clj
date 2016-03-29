@@ -99,7 +99,7 @@
 (defn grid->vos
   "Return a vector of strings representing the grid"
   [grid]
-  (vec (map #(apply str %) (partition cols grid))))
+  (mapv #(apply str %) (partition cols grid)))
 
 (defn add-border-to-vos
   [vos]
@@ -152,7 +152,7 @@
   "Given two coordinates, return a new coord that gets source one step closer to target.
   (There's no change if source is already equal to target.)"
   [target source]
-  (vec (map + source (map compare target source))))
+  (mapv + source (map compare target source)))
 
 (defn move-robots
   [board]
