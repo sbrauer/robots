@@ -172,15 +172,31 @@
 
 (defn teleport
   "Return a random coord (not equal to original coord)."
-  [coord]
-  (first (filter #(not= coord %) (repeatedly rand-coord))))
+  [board]
+  (first (filter #(not= (:player board) %) (repeatedly rand-coord))))
+
+;; FIXME: may run forever...
+;; Try writing a function safe-coords [board] that returns all empty coords that would be safe after moving the player.
+;; Update safe-teleport to call safe-coords.
+;; If nil, safe-teleport returns board.
+;; Else return board with player at rand-nth safe-coords
+(defn safe-teleport
+  "Return a random coord (not equal to player or a robot or pile)."
+  [board]
+  (first (filter
+           (fn [coord]
+             (let [new-board (assoc board :player coord)]
+               (and (player-alive? new-board)
+                    (player-alive? (move-robots new-board)))))
+           (repeatedly #(teleport board)))))
 
 (defn move-player
-  "Handle a player action (:wait, :teleport, or a direction keyword)
+  "Handle a player action (:wait, :teleport, :safe-teleport or a direction keyword)
   and return a new board."
   [board action]
   (case action
-        :teleport (assoc board :player (teleport (:player board)))
+        :teleport (assoc board :player (teleport board))
+        :safe-teleport (assoc board :player (safe-teleport board))
         (:n :s :e :w :ne :nw :se :sw)
           (let [new-player (move-coord (:player board) action)]
             (assert (coord-in-bounds? new-player))
@@ -217,6 +233,7 @@
   (case (get-key)
     (\space \. \5) :wait
     (\t \0) :teleport
+    \s      :safe-teleport
     (\k \8) :n
     (\j \2) :s
     (\h \4) :w
@@ -365,8 +382,7 @@
   ;; Wrap play-turn with history support (undo and redo)
   (let [play-turn-h (historize play-turn)]
     (loop [board board]
-      (let [{new-board :state undos :undos}
-              (play-turn-h board (get-valid-action board))]
+      (let [{new-board :state undos :undos} (play-turn-h board (get-valid-action board))]
         (render-game new-board level (count undos))
         (if (player-alive? new-board)
           (if (robots-alive? new-board)
