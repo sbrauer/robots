@@ -1,4 +1,5 @@
 (ns robots.core
+  (:gen-class)
   (:require clojure.set)
   (:import  [jline.console ConsoleReader]))
 
