@@ -170,25 +170,40 @@
       :piles  (clojure.set/union
                 (set (get robots-by-pileup? true))  (:piles board)))))
 
+(defn safe-coord
+  [board coord]
+  (and (not (contains? (:piles board) coord))
+       (not (contains? (:robots board) coord))
+       (not (contains? (:robots board) (move-coord coord :n)))
+       (not (contains? (:robots board) (move-coord coord :s)))
+       (not (contains? (:robots board) (move-coord coord :e)))
+       (not (contains? (:robots board) (move-coord coord :w)))
+       (not (contains? (:robots board) (move-coord coord :ne)))
+       (not (contains? (:robots board) (move-coord coord :nw)))
+       (not (contains? (:robots board) (move-coord coord :se)))
+       (not (contains? (:robots board) (move-coord coord :sw)))))
+
+(defn all-board-coords []
+  (for [x (range cols)
+        y (range rows)]
+    [x y]))
+
+(defn safe-coords
+  [board]
+  (set (filter (partial safe-coord board) (all-board-coords))))
+
 (defn teleport
   "Return a random coord (not equal to original coord)."
   [board]
   (first (filter #(not= (:player board) %) (repeatedly rand-coord))))
 
-;; FIXME: may run forever...
-;; Try writing a function safe-coords [board] that returns all empty coords that would be safe after moving the player.
-;; Update safe-teleport to call safe-coords.
-;; If nil, safe-teleport returns board.
-;; Else return board with player at rand-nth safe-coords
 (defn safe-teleport
   "Return a random coord (not equal to player or a robot or pile)."
   [board]
-  (first (filter
-           (fn [coord]
-             (let [new-board (assoc board :player coord)]
-               (and (player-alive? new-board)
-                    (player-alive? (move-robots new-board)))))
-           (repeatedly #(teleport board)))))
+  (let [safe-options (disj (safe-coords board) (:player board))]
+    (if (empty? safe-options)
+      board
+      (rand-nth (vec safe-options)))))
 
 (defn move-player
   "Handle a player action (:wait, :teleport, :safe-teleport or a direction keyword)
