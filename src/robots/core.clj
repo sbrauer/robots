@@ -198,11 +198,11 @@
   (first (filter #(not= (:player board) %) (repeatedly rand-coord))))
 
 (defn safe-teleport
-  "Return a random coord (not equal to player or a robot or pile)."
+  "Return a random coord (not equal to player or a robot or pile) or nil if impossible."
   [board]
   (let [safe-options (disj (safe-coords board) (:player board))]
     (if (empty? safe-options)
-      board
+      nil
       (rand-nth (vec safe-options)))))
 
 (defn move-player
@@ -260,11 +260,6 @@
     \z      :undo
     \x      :redo
     (recur)))
-
-(defn dir-action?
-  "Returns true if the given action corresponds to a direction."
-  [action]
-  (boolean (dir->offset action)))
 
 (defn til-truthy
   [f]
@@ -345,11 +340,12 @@
     (flush))
 
 (defn valid-action?
-  "Is the given action valid (non-nil and (if directional) in-bounds)."
+  "Is the given action valid (non-nil and resulting in a possible move)."
   [action board]
   (if action
-    (if (dir-action? action)
-      (coord-in-bounds? (move-coord (:player board) action))
+    (case action
+      :safe-teleport (boolean (safe-teleport board))
+      (:n :s :e :w :ne :nw :se :sw) (coord-in-bounds? (move-coord (:player board) action))
       true)
     false))
 
