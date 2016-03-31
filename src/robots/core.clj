@@ -424,17 +424,25 @@
 
 (defn play-game
   "Return true until player quits."
-  []
-  (loop [level 1]
+  [start-level]
+  (loop [level start-level]
     (case (play-level level)
       :success (recur (inc level))
       :newgame true
       ;; presumably :quit
       false)))
 
+(defn parse-int
+  [s]
+  (try
+    (Integer/parseInt s)
+    (catch NumberFormatException e
+      nil)))
+
 (defn -main
   "Would you like to play a game?"
   [& args]
-  (loop []
-    (if (play-game) (recur)))
+  (let [level (or (parse-int (first args)) 1)]
+    (loop []
+      (if (play-game level) (recur))))
   (println "\nGoodbye!"))
