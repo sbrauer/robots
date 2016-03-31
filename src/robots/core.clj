@@ -172,16 +172,16 @@
 
 (defn safe-coord
   [board coord]
-  (and (not (contains? (:piles board) coord))
-       (not (contains? (:robots board) coord))
-       (not (contains? (:robots board) (move-coord coord :n)))
-       (not (contains? (:robots board) (move-coord coord :s)))
-       (not (contains? (:robots board) (move-coord coord :e)))
-       (not (contains? (:robots board) (move-coord coord :w)))
-       (not (contains? (:robots board) (move-coord coord :ne)))
-       (not (contains? (:robots board) (move-coord coord :nw)))
-       (not (contains? (:robots board) (move-coord coord :se)))
-       (not (contains? (:robots board) (move-coord coord :sw)))))
+  (not (or (contains? (:piles board) coord)
+           (contains? (:robots board) coord)
+           (contains? (:robots board) (move-coord coord :n))
+           (contains? (:robots board) (move-coord coord :s))
+           (contains? (:robots board) (move-coord coord :e))
+           (contains? (:robots board) (move-coord coord :w))
+           (contains? (:robots board) (move-coord coord :ne))
+           (contains? (:robots board) (move-coord coord :nw))
+           (contains? (:robots board) (move-coord coord :se))
+           (contains? (:robots board) (move-coord coord :sw)))))
 
 (defn all-board-coords []
   (for [x (range cols)
