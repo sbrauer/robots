@@ -348,11 +348,10 @@
 (defn valid-action?
   "Is the given action valid (non-nil and resulting in a possible move)."
   [action board]
-  (if action
-    (case action
-      :safe-teleport (boolean (safe-teleport board))
-      (:n :s :e :w :ne :nw :se :sw) (coord-in-bounds? (move-coord (:player board) action))
-      true)
+  (case action
+    (:n :s :e :w :ne :nw :se :sw) (coord-in-bounds? (move-coord (:player board) action))
+    (:wait :teleport :undo :redo) true
+    :safe-teleport (boolean (safe-teleport board))
     false))
 
 (defn validate-action
