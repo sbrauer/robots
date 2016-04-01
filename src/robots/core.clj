@@ -237,6 +237,11 @@
   (print "\u001b[2J")
   (move-cursor [0 0]))
 
+(defn ring-bell
+  []
+  (print (char 7))
+  (flush))
+
 (defn get-key
   []
   (let [cr (ConsoleReader.)
@@ -355,7 +360,8 @@
   [action board]
   (if (valid-action? action board)
     action
-    nil))
+    ;; Ringing the bell as a side-effect isn't pure, but this is just a game.
+    (ring-bell)))
 
 (defn get-valid-action
   "Won't return until it can return a valid action."
