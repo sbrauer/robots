@@ -1,4 +1,5 @@
 (ns robots.core
+  (:gen-class)
   (:require clojure.set)
   (:import  [jline.console ConsoleReader]))
 
@@ -53,7 +54,7 @@
       empty-char)))
 
 (defn coord->grid-idx
-  [x y]
+  [[x y]]
   (+ x (* y cols)))
 
 (defn grid-idx->coord
@@ -61,8 +62,8 @@
   [(rem idx cols) (quot idx cols)])
 
 (defn add-char-to-grid
-  [grid [x y] ch]
-  (assoc grid (coord->grid-idx x y) ch))
+  [grid coord ch]
+  (assoc grid (coord->grid-idx coord) ch))
 
 (defn add-player-to-grid
   [grid coords alive?]
@@ -99,31 +100,18 @@
 (defn grid->vos
   "Return a vector of strings representing the grid"
   [grid]
-  (vec (map #(apply str %) (partition cols grid))))
+  (mapv #(apply str %) (partition cols grid)))
 
-(defn border
-  []
-  (apply str (flatten [\+ (repeat cols \-) \+])))
-
-(defn grid->str
-  "Return a string representing the grid (suitable for printing)"
-  [grid border?]
-  (if border?
-    (apply str (interpose "\n"
-                          (flatten [(border)
-                                    (map #(format "|%s|" %) (grid->vos grid))
-                                    (border)])))
-    (apply str (interpose "\n" (grid->vos grid)))))
+(defn add-border-to-vos
+  [vos]
+  (let [width (count (first vos))
+        border (apply str (flatten [\+ (repeat width \-) \+]))]
+    (vec (concat [border] (map #(format "|%s|" %) vos) [border]))))
 
 (defn grid->str
   "Return a string representing the grid (suitable for printing)"
-  [grid border?]
-  (apply str (interpose "\n"
-    (if border?
-      (flatten [(border)
-                (map #(format "|%s|" %) (grid->vos grid))
-                (border)])
-      (grid->vos grid)))))
+  [grid]
+  (apply str (interpose "\n" (grid->vos grid))))
 
 (defn rand-board
   [num-robots]
@@ -133,9 +121,17 @@
   [board]
   (not (contains? (clojure.set/union (:piles board) (:robots board)) (:player board))))
 
+(defn count-piles
+  [board]
+  (count (:piles board)))
+
+(defn count-robots-alive
+  [board]
+  (count (:robots board)))
+
 (defn robots-alive?
   [board]
-  (pos? (count (:robots board))))
+  (pos? (count-robots-alive board)))
 
 (defn board->grid
   [board]
@@ -145,39 +141,19 @@
       (add-player-to-grid (:player board) (player-alive? board))))
 
 (defn board->str
-  [board border?]
-  (grid->str (board->grid board) border?))
+  [board]
+  (grid->str (board->grid board)))
 
 (defn board->vos
   "Return a vector of strings representing the board"
   [board]
   (grid->vos (board->grid board)))
 
-(defn teleport
-  "Return a random coord (not equal to original coord)."
-  [coord]
-  (first (filter #(not= coord %) (repeatedly rand-coord))))
-
-(defn move-player
-  "Handle a player action (:wait, :teleport, or a direction keyword)
-  and return a new board, or nil if the action was unrecognized or
-  would move the player out of bounds."
-  [board action]
-  (case action
-        :wait board
-        :teleport (assoc board :player (teleport (:player board)))
-        (:n :s :e :w :ne :nw :se :sw)
-          (let [new-player (move-coord (:player board) action)]
-            (if (coord-in-bounds? new-player)
-              (assoc board :player new-player)
-              nil))
-        nil))
-
 (defn move-towards
   "Given two coordinates, return a new coord that gets source one step closer to target.
   (There's no change if source is already equal to target.)"
   [target source]
-  (vec (map + source (map compare target source))))
+  (mapv + source (map compare target source)))
 
 (defn move-robots
   [board]
@@ -195,9 +171,76 @@
       :piles  (clojure.set/union
                 (set (get robots-by-pileup? true))  (:piles board)))))
 
+(defn safe-coord
+  [board coord]
+  (not (or (contains? (:piles board) coord)
+           (contains? (:robots board) coord)
+           (contains? (:robots board) (move-coord coord :n))
+           (contains? (:robots board) (move-coord coord :s))
+           (contains? (:robots board) (move-coord coord :e))
+           (contains? (:robots board) (move-coord coord :w))
+           (contains? (:robots board) (move-coord coord :ne))
+           (contains? (:robots board) (move-coord coord :nw))
+           (contains? (:robots board) (move-coord coord :se))
+           (contains? (:robots board) (move-coord coord :sw)))))
+
+(defn all-board-coords []
+  (for [x (range cols)
+        y (range rows)]
+    [x y]))
+
+(defn safe-coords
+  [board]
+  (set (filter (partial safe-coord board) (all-board-coords))))
+
+(defn teleport
+  "Return a random coord (not equal to original coord)."
+  [board]
+  (first (filter #(not= (:player board) %) (repeatedly rand-coord))))
+
+(defn safe-teleport
+  "Return a random coord (not equal to player or a robot or pile) or nil if impossible."
+  [board]
+  (let [safe-options (disj (safe-coords board) (:player board))]
+    (if (empty? safe-options)
+      nil
+      (rand-nth (vec safe-options)))))
+
+(defn move-player
+  "Handle a player action (:wait, :teleport, :safe-teleport or a direction keyword)
+  and return a new board."
+  [board action]
+  (case action
+        :teleport (assoc board :player (teleport board))
+        :safe-teleport (assoc board :player (safe-teleport board))
+        (:n :s :e :w :ne :nw :se :sw)
+          (let [new-player (move-coord (:player board) action)]
+            (assert (coord-in-bounds? new-player))
+            (assoc board :player new-player))
+        ;; Default (:wait or unrecognized action) just return the same board.
+        board))
+
 (defn level->robots
   [level]
   (* 10 level))
+
+(defn level->rand-board
+  [level]
+  (rand-board (level->robots level)))
+
+(defn move-cursor
+  [[x y]]
+  (print (str "\u001b[" y ";" x "f")))
+
+(defn clear-screen
+  []
+  (print "\u001b[2J")
+  (move-cursor [0 0]))
+
+(defn ring-bell
+  []
+  (print (char 7))
+  (flush))
 
 (defn get-key
   []
@@ -205,25 +248,13 @@
             keyint (.readCharacter cr)]
     (char keyint)))
 
-(defn clear-screen
-  []
-  (print "\u001b[2J")
-  (print "\u001B[0;0f"))
-
-(defn yes-or-no?
-  []
-  (loop []
-    (case (get-key)
-      \y true
-      \n false
-      (recur))))
-
 (defn get-action
-  "Wait for any key and return the corresponding action keyword (or nil if unrecognized key)."
+  "Wait for a key press that corresponds to an action and return the action keyword."
   []
   (case (get-key)
     (\space \. \5) :wait
     (\t \0) :teleport
+    \s      :safe-teleport
     (\k \8) :n
     (\j \2) :s
     (\h \4) :w
@@ -232,54 +263,189 @@
     (\n \3) :se
     (\y \7) :nw
     (\b \1) :sw
-    nil))
+    \z      :undo
+    \x      :redo
+    (recur)))
 
 (defn til-truthy
   [f]
   (first (filter identity (repeatedly f))))
 
-(defn handle-player-move
-  "Wait for user to enter a valid action key and return the new board state."
+;; History undo/redo stuff...
+
+(defn undo
+  [current-state undos redos]
+  (let [old-state (peek undos)]
+    (if old-state
+      {:state old-state :undos (pop undos) :redos (conj redos current-state)}
+      {:state current-state :undos undos :redos redos})))
+
+(defn redo
+  [current-state undos redos]
+  (let [old-state (peek redos)]
+    (if old-state
+      {:state old-state :redos (pop redos) :undos (conj undos current-state)}
+      {:state current-state :undos undos :redos redos})))
+
+(defn historize
+  "Decorates the given function with undo/redo.
+  f is a function that takes [state action]
+  and returns a new state.
+  Returns a function with the same arguments that intercepts
+  the actions :undo and :redo and returns the corresponding state.
+  Note that instead of returning the new state itself, the decorated
+  function returns a hash with the keys :state, :undos and :redos"
+  [f]
+  (let [history (atom {:undos []
+                       :redos []})]
+    (fn
+      [orig-state action]
+      (let [{:keys [state undos redos]}
+            (case action
+              :undo (undo orig-state (:undos @history) (:redos @history))
+              :redo (redo orig-state (:undos @history) (:redos @history))
+              (let [new-state (f orig-state action)]
+                {:state new-state
+                 :undos (conj (:undos @history) orig-state)
+                 :redos []}))]
+            (when (not= state orig-state)
+              (swap! history #(assoc % :undos undos :redos redos)))
+            (assoc @history :state state)))))
+
+(defn player-screen-coord
+  "Returns coord of player on the screen (accounting for border)."
   [board]
-  (til-truthy #(move-player board (til-truthy get-action))))
+  (map + (:player board) [2 2]))
+
+(defn append-to-vos
+  "vos is a vector of strings.
+  appends is a seq of pairs where first item is an index int and second is a string to append at that index.
+  Returns a new vector of strings with the appends applied."
+  [vos appends]
+  (reduce
+    (fn
+      [coll [idx s]]
+      (assoc coll idx (str (nth coll idx) s)))
+    vos
+    appends))
 
 (defn render-game
-  [level board]
+  [board level moves]
   (clear-screen)
-  (println (str "Level: " level))
-  (println (board->str board true))
-  (when-not (player-alive? board) (println "*** OH NO! KILLED BY A ROBOT! GAME OVER ***")))
+  (let [board-vos (add-border-to-vos (board->vos board))
+        alive? (player-alive? board)
+        appends [[1 (str " Level " level)]
+                 [3 (str " Moves " moves)]
+                 [5 (str " Robots " (count-robots-alive board) "/" (level->robots level))]
+                 [7 (str " Piles " (count-piles board))]
+                 [9 (if alive? " Alive :)" " *** DEAD ***")]]]
+    (println (apply str (interpose "\n" (append-to-vos board-vos appends))))
+    (when alive?
+      (print "Move HJKLYUBN or numpad [T]teleport [space]wait [Z]undo [X]redo")
+      (move-cursor (player-screen-coord board))))
+    (flush))
+
+(defn valid-action?
+  "Is the given action valid (non-nil and resulting in a possible move)."
+  [action board]
+  (if action
+    (case action
+      :safe-teleport (boolean (safe-teleport board))
+      (:n :s :e :w :ne :nw :se :sw) (coord-in-bounds? (move-coord (:player board) action))
+      true)
+    false))
+
+(defn validate-action
+  "Returns action if it's valid; else returns nil."
+  [action board]
+  (if (valid-action? action board)
+    action
+    ;; Ringing the bell as a side-effect isn't pure, but this is just a game.
+    (ring-bell)))
+
+(defn get-valid-action
+  "Won't return until it can return a valid action."
+  [board]
+  (til-truthy #(validate-action (get-action) board)))
+
+(defn get-post-death-action
+  []
+  (case (get-key)
+    \z :undo
+    \t :retry
+    \r :random
+    \n :newgame
+    \q :quit
+    (recur)))
+
+(defn handle-death
+  "Prompt user for next action.
+  Returns one of :undo :random :retry :newgame :quit"
+  []
+  (print "[Z]Undo, [T]ry again, [R]andom board, [N]ew game, [Q]uit? ")
+  (flush)
+  (get-post-death-action))
+
+(defn play-turn
+  [board action]
+  (let [new-board (move-player board action)]
+    (if (player-alive? new-board)
+      (move-robots new-board)
+      new-board)))
+
+(defn play-board
+  "Returns one of :random :retry :success :newgame :quit"
+  [board level]
+  (render-game board level 0)
+  ;; Wrap play-turn with history support (undo and redo)
+  (let [play-turn-h (historize play-turn)]
+    (loop [board board]
+      (let [{new-board :state undos :undos} (play-turn-h board (get-valid-action board))]
+        (render-game new-board level (count undos))
+        (if (player-alive? new-board)
+          (if (robots-alive? new-board)
+            (recur new-board)
+            :success)
+          (let [result (handle-death)]
+            (if (= result :undo)
+              (let [{new-board :state undos :undos} (play-turn-h new-board :undo)]
+                (render-game new-board level (count undos))
+                (recur new-board))
+              result)))))))
 
 (defn play-level
-  "Return true if player completes level, or false if player dies."
+  "Returns one of :success :newgame :quit"
   [level]
-  (let
-    [board (rand-board (level->robots level))]
-    (render-game level board)
-    (loop [board board]
-      (let [new-board (handle-player-move board)]
-        (if (player-alive? new-board)
-          (let [new-board (move-robots new-board)]
-            (render-game level new-board)
-            (if (player-alive? new-board)
-              (if (robots-alive? new-board)
-                (recur new-board)
-                true)
-              false))
-          (or (render-game level new-board) false))))))
+  (loop
+    [board (level->rand-board level)]
+    (let [result (play-board board level)]
+      (case result
+        :retry (recur board)
+        :random (recur (level->rand-board level))
+        ;; presumably result is :success :newgame or :quit
+        result))))
 
 (defn play-game
-  []
-  (loop [level 1]
-    (if (play-level level)
-      (recur (inc level)))))
+  "Return true until player quits."
+  [start-level]
+  (loop [level start-level]
+    (case (play-level level)
+      :success (recur (inc level))
+      :newgame true
+      ;; presumably :quit
+      false)))
+
+(defn parse-int
+  [s]
+  (try
+    (Integer/parseInt s)
+    (catch NumberFormatException e
+      nil)))
 
 (defn -main
   "Would you like to play a game?"
   [& args]
-  (loop []
-    (play-game)
-    (print "Play again [yn] ")
-    (flush)
-    (if (yes-or-no?) (recur)))
-  (println "Goodbye!"))
+  (let [level (or (parse-int (first args)) 1)]
+    (loop []
+      (if (play-game level) (recur))))
+  (println "\nGoodbye!"))
