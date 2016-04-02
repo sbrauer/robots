@@ -1,4 +1,4 @@
-(ns robots.term
+(ns robots.terminal
   (:import [jline.console ConsoleReader]))
 
 (defn move-cursor

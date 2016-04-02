@@ -1,10 +1,10 @@
 (ns robots.game
-  (:require [robots.board   :as board]
-            [robots.coord   :as coord]
-            [robots.grid    :as grid]
-            [robots.history :as history]
-            [robots.term    :as term]
-            [robots.util    :as util]))
+  (:require [robots.board    :as board]
+            [robots.coord    :as coord]
+            [robots.grid     :as grid]
+            [robots.history  :as history]
+            [robots.terminal :as term]
+            [robots.util     :as util]))
 
 (defn level->robots
   [level]
