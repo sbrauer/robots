@@ -29,16 +29,16 @@
   (assoc grid (coord->grid-idx coord) ch))
 
 (defn add-player-to-grid
-  [grid coords alive?]
-  (add-char-to-grid grid coords (if alive? const/player-char const/dead-player-char)))
+  [grid coord alive?]
+  (add-char-to-grid grid coord (if alive? const/player-char const/dead-player-char)))
 
 (defn add-robot-to-grid
-  [grid coords]
-  (add-char-to-grid grid coords const/robot-char))
+  [grid coord]
+  (add-char-to-grid grid coord const/robot-char))
 
 (defn add-pile-to-grid
-  [grid coords]
-  (add-char-to-grid grid coords const/pile-char))
+  [grid coord]
+  (add-char-to-grid grid coord const/pile-char))
 
 (defn add-robots-to-grid
   [grid robots]
