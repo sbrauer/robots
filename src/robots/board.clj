@@ -14,13 +14,13 @@
   [board]
   (count (:piles board)))
 
-(defn count-robots-alive
+(defn count-robots
   [board]
   (count (:robots board)))
 
 (defn robots-alive?
   [board]
-  (pos? (count-robots-alive board)))
+  (pos? (count-robots board)))
 
 (defn board->grid
   [board]
@@ -39,26 +39,21 @@
   (grid/grid->vos (board->grid board)))
 
 (defn safe-coord?
-  [board co]
-  (not (or (contains? (:piles board) co)
-           (contains? (:robots board) co)
-           (contains? (:robots board) (coord/move-coord co :n))
-           (contains? (:robots board) (coord/move-coord co :s))
-           (contains? (:robots board) (coord/move-coord co :e))
-           (contains? (:robots board) (coord/move-coord co :w))
-           (contains? (:robots board) (coord/move-coord co :ne))
-           (contains? (:robots board) (coord/move-coord co :nw))
-           (contains? (:robots board) (coord/move-coord co :se))
-           (contains? (:robots board) (coord/move-coord co :sw)))))
+  [board coord]
+  (not (or (contains? (:piles board) coord)
+           (contains? (:robots board) coord)
+           (contains? (:robots board) (coord/move-coord coord :n))
+           (contains? (:robots board) (coord/move-coord coord :s))
+           (contains? (:robots board) (coord/move-coord coord :e))
+           (contains? (:robots board) (coord/move-coord coord :w))
+           (contains? (:robots board) (coord/move-coord coord :ne))
+           (contains? (:robots board) (coord/move-coord coord :nw))
+           (contains? (:robots board) (coord/move-coord coord :se))
+           (contains? (:robots board) (coord/move-coord coord :sw)))))
 
 (defn safe-coords
   [board]
   (set (filter (partial safe-coord? board) (coord/all-board-coords))))
-
-(defn teleport
-  "Return a random coord (not equal to original coord)."
-  [board]
-  (first (filter #(not= (:player board) %) (repeatedly coord/rand-coord))))
 
 (defn safe-teleport
   "Return a random coord (not equal to player or a robot or pile) or nil if impossible."
@@ -67,6 +62,11 @@
     (if (empty? safe-options)
       nil
       (rand-nth (vec safe-options)))))
+
+(defn teleport
+  "Return a random coord (not equal to original coord)."
+  [board]
+  (first (filter #(not= (:player board) %) (repeatedly coord/rand-coord))))
 
 (defn move-player
   "Handle a player action (:wait, :teleport, :safe-teleport or a direction keyword)
@@ -88,7 +88,7 @@
           (->> (:robots board)
                (map (partial coord/move-towards (:player board)))
                (frequencies)
-               (map (fn [[co cnt]] [co (< 1 cnt)]))
+               (map (fn [[coord cnt]] [coord (< 1 cnt)]))
                (group-by second)
                (map #(vector (first %) (map first (second %))))
                (into {}))]
@@ -97,3 +97,7 @@
                 (set (get robots-by-pileup? false)) (:piles board))
       :piles  (clojure.set/union
                 (set (get robots-by-pileup? true))  (:piles board)))))
+
+(defn rand-board
+  [num-robots]
+  (grid/grid->board (grid/rand-grid num-robots)))

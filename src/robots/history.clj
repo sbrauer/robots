@@ -1,13 +1,13 @@
 (ns robots.history)
 
-(defn undo
+(defn- undo
   [current-state undos redos]
   (let [old-state (peek undos)]
     (if old-state
       {:state old-state :undos (pop undos) :redos (conj redos current-state)}
       {:state current-state :undos undos :redos redos})))
 
-(defn redo
+(defn- redo
   [current-state undos redos]
   (let [old-state (peek redos)]
     (if old-state

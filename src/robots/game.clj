@@ -12,7 +12,7 @@
 
 (defn level->rand-board
   [level]
-  (grid/rand-board (level->robots level)))
+  (board/rand-board (level->robots level)))
 
 (defn player-screen-coord
   "Returns coord of player on the screen (accounting for border)."
@@ -26,7 +26,7 @@
         alive? (board/player-alive? board)
         appends [[1 (str " Level " level)]
                  [3 (str " Moves " moves)]
-                 [5 (str " Robots " (board/count-robots-alive board) "/" (level->robots level))]
+                 [5 (str " Robots " (board/count-robots board) "/" (level->robots level))]
                  [7 (str " Piles " (board/count-piles board))]
                  [9 (if alive? " Alive :)" " *** DEAD ***")]]]
     (println (apply str (interpose "\n" (util/append-to-vos board-vos appends))))

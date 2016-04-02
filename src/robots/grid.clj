@@ -25,8 +25,8 @@
   [(rem idx const/cols) (quot idx const/cols)])
 
 (defn add-char-to-grid
-  [grid co ch]
-  (assoc grid (coord->grid-idx co) ch))
+  [grid coord ch]
+  (assoc grid (coord->grid-idx coord) ch))
 
 (defn add-player-to-grid
   [grid coords alive?]
@@ -69,8 +69,3 @@
   "Return a string representing the grid (suitable for printing)"
   [grid]
   (apply str (interpose "\n" (grid->vos grid))))
-
-;; FIXME: move to board or game?
-(defn rand-board
-  [num-robots]
-  (grid->board (rand-grid num-robots)))

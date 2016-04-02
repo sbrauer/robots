@@ -11,7 +11,12 @@
   [coord dir]
   (map + coord (dir->offset dir)))
 
-;; FIXME: move to board?
+(defn move-towards
+  "Given two coordinates, return a new coord that gets source one step closer to target.
+  (There's no change if source is already equal to target.)"
+  [target source]
+  (mapv + source (map compare target source)))
+
 (defn coord-in-bounds?
   "Return true if the given coord is within the bounds specified by cols and rows."
   [[x y]]
@@ -20,19 +25,11 @@
        (< x const/cols)
        (< y const/rows)))
 
-(defn move-towards
-  "Given two coordinates, return a new coord that gets source one step closer to target.
-  (There's no change if source is already equal to target.)"
-  [target source]
-  (mapv + source (map compare target source)))
-
-;; FIXME: move to board?
 (defn all-board-coords []
   (for [x (range const/cols)
         y (range const/rows)]
     [x y]))
 
-;; FIXME: move to board?
 (defn rand-coord
   []
   [(rand-int const/cols) (rand-int const/rows)])
