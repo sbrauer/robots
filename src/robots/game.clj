@@ -124,8 +124,7 @@
 (defn play-level
   "Returns one of :success :newgame :quit"
   [level]
-  (loop
-    [board (level->rand-board level)]
+  (loop [board (level->rand-board level)]
     (let [result (play-board board level)]
       (case result
         :retry (recur board)
