@@ -42,6 +42,7 @@
     (\space \. \5) :wait
     (\t \0) :teleport
     \s      :safe-teleport
+    \w      :wait-for-end
     (\k \8) :n
     (\j \2) :s
     (\h \4) :w
@@ -59,7 +60,7 @@
   [action board]
   (case action
     (:n :s :e :w :ne :nw :se :sw) (coord/coord-in-bounds? (coord/move-coord (:player board) action))
-    (:wait :teleport :undo :redo) true
+    (:wait :teleport :undo :redo :wait-for-end) true
     :safe-teleport (boolean (board/safe-teleport board))
     false))
 

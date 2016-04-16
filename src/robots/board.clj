@@ -68,20 +68,6 @@
   [board]
   (first (filter #(not= (:player board) %) (repeatedly coord/rand-coord))))
 
-(defn move-player
-  "Handle a player action (:wait, :teleport, :safe-teleport or a direction keyword)
-  and return a new board."
-  [board action]
-  (case action
-        :teleport (assoc board :player (teleport board))
-        :safe-teleport (assoc board :player (safe-teleport board))
-        (:n :s :e :w :ne :nw :se :sw)
-          (let [new-player (coord/move-coord (:player board) action)]
-            (assert (coord/coord-in-bounds? new-player))
-            (assoc board :player new-player))
-        ;; Default (:wait or unrecognized action) just return the same board.
-        board))
-
 (defn move-robots
   [board]
   (let [robots-by-pileup?
@@ -97,6 +83,29 @@
                 (set (get robots-by-pileup? false)) (:piles board))
       :piles  (clojure.set/union
                 (set (get robots-by-pileup? true))  (:piles board)))))
+
+(defn wait-for-end
+  [board]
+  (let [new-board (move-robots board)]
+    (if (and (player-alive? new-board)
+             (robots-alive? new-board))
+      (recur new-board)
+      new-board)))
+
+(defn move-player
+  "Handle a player action (:wait, :teleport, :safe-teleport or a direction keyword)
+  and return a new board."
+  [board action]
+  (case action
+        :teleport (assoc board :player (teleport board))
+        :safe-teleport (assoc board :player (safe-teleport board))
+        (:n :s :e :w :ne :nw :se :sw)
+          (let [new-player (coord/move-coord (:player board) action)]
+            (assert (coord/coord-in-bounds? new-player))
+            (assoc board :player new-player))
+        :wait-for-end (wait-for-end board)
+        ;; Default (:wait or unrecognized action) just return the same board.
+        board))
 
 (defn rand-board
   [num-robots]

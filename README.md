@@ -86,6 +86,8 @@ Wait with `space` or `.`.
 
 `T` to teleport to a random location (possibly on a robot or pile, resulting in death).
 
+`W` to wait for until either the robots kill themselves or you.
+
 #### Cheat Keys
 
 `Z` will undo the last turn. `X` will redo the last undo. (Undo and redo apply to the current level only; you can't undo back to a previous level.)
