@@ -12,3 +12,11 @@
   (testing "beyond full coll"
     ; truncates to specified size
     (is (= [:x :x :x] (pad [:x :x :x :x] 3 :p)))))
+
+(deftest test-vos+vos
+  (testing "same length"
+    (is (= ["ad" "be" "cf"] (vos+vos ["a" "b" "c"] ["d" "e" "f"]))))
+  (testing "first longer"
+    (is (= ["ad" "be" "c"]  (vos+vos ["a" "b" "c"] ["d" "e"    ]))))
+  (testing "first shorter"
+    (is (= ["ad" "be" "f"]  (vos+vos ["a" "b"    ] ["d" "e" "f"])))))

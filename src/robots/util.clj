@@ -15,17 +15,12 @@
   [f]
   (first (filter identity (repeatedly f))))
 
-(defn append-to-vos
-  "vos is a vector of strings.
-  appends is a seq of pairs where first item is an index int and second is a string to append at that index.
-  Returns a new vector of strings with the appends applied."
-  [vos appends]
-  (reduce
-    (fn
-      [coll [idx s]]
-      (assoc coll idx (str (nth coll idx) s)))
-    vos
-    appends))
+(defn vos+vos
+  [vos1 vos2]
+  (let [length (max (count vos1) (count vos2))]
+  (->> (interleave (pad vos1 length "") (pad vos2 length ""))
+       (partition 2)
+       (map #(apply str %)))))
 
 (defn add-border-to-vos
   [vos]

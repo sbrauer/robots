@@ -24,12 +24,12 @@
   (term/clear-screen)
   (let [board-vos (util/add-border-to-vos (board/board->vos board))
         alive? (board/player-alive? board)
-        appends [[1 (str " Level " level)]
-                 [3 (str " Moves " moves)]
-                 [5 (str " Robots " (board/count-robots board) "/" (level->robots level))]
-                 [7 (str " Piles " (board/count-piles board))]
-                 [9 (if alive? " Alive :)" " *** DEAD ***")]]]
-    (println (apply str (interpose "\n" (util/append-to-vos board-vos appends))))
+        sidebar ["" (str " Level " level)
+                 "" (str " Moves " moves)
+                 "" (str " Robots " (board/count-robots board) "/" (level->robots level))
+                 "" (str " Piles " (board/count-piles board))
+                 "" (if alive? " Alive :)" " *** DEAD ***")]]
+    (println (apply str (interpose "\n" (util/vos+vos board-vos sidebar))))
     (when alive?
       (print "Move HJKLYUBN or numpad [T]teleport [space]wait [Z]undo [X]redo")
       (term/move-cursor (player-screen-coord board))))
