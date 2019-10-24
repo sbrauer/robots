@@ -1,11 +1,10 @@
 (ns robots.coord
   (:require [robots.constants :as const]))
 
-; Coords are 2-item vectors [x y] (where top-left is [0 0])
+;; Coords are 2-item vectors [x y] (where top-left is [0 0])
 
-(defn dir->offset
-  [dir]
-  (dir {:n [0 -1] :s [0 1] :e [1 0] :w [-1 0] :ne [1 -1] :se [1 1] :nw [-1 -1] :sw [-1 1]}))
+(def dir->offset
+  {:n [0 -1] :s [0 1] :e [1 0] :w [-1 0] :ne [1 -1] :se [1 1] :nw [-1 -1] :sw [-1 1]})
 
 (defn move-coord
   [coord dir]

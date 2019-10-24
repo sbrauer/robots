@@ -17,6 +17,4 @@
 
 (defn get-key
   []
-  (let [cr (ConsoleReader.)
-            keyint (.readCharacter cr)]
-    (char keyint)))
+  (-> (ConsoleReader.) .readCharacter char))

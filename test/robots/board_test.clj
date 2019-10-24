@@ -4,8 +4,8 @@
             [robots.coord :as coord]
             [robots.fixtures :refer :all]))
 
-(deftest test-board->vos
-  (is (= sample-vos (board->vos sample-board))))
+(deftest test-board->strings
+  (is (= sample-strings (board->strings sample-board))))
 
 (deftest test-move-robots
   (let [expected {:player [5 2]
@@ -17,9 +17,10 @@
   (testing :wait
     (is (= sample-board (move-player sample-board :wait))))
   (testing :teleport
-    (is (let [new-board (move-player sample-board :teleport)
-              new-player (:player new-board)]
-          (and (coord/coord-in-bounds? new-player) (not= new-player (:player sample-board))))))
+    (let [new-board (move-player sample-board :teleport)
+          new-player (:player new-board)]
+      (is (and (coord/coord-in-bounds? new-player)
+               (not= new-player (:player sample-board))))))
   (testing :n
     (is (= (assoc sample-board :player [5 1]) (move-player sample-board :n))))
   (testing :s

@@ -6,7 +6,6 @@
 (defn -main
   "Resistance is useless!"
   [& args]
-  (let [level (or (util/parse-int (first args)) 1)]
-    (loop []
-      (if (game/play-game level) (recur))))
+  (let [start-level (or (util/parse-int (first args)) 1)]
+    (while (game/play-game start-level)))
   (println "\nGoodbye!"))

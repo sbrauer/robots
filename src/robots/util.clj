@@ -12,18 +12,17 @@
   (take n (concat coll (repeat padding))))
 
 (defn til-truthy
+  "Call f until it returns a truthy value. Returns the truthy value."
   [f]
-  (first (filter identity (repeatedly f))))
+  (some identity (repeatedly f)))
 
-(defn vos+vos
-  [vos1 vos2]
-  (let [length (max (count vos1) (count vos2))]
-  (->> (interleave (pad vos1 length "") (pad vos2 length ""))
-       (partition 2)
-       (map #(apply str %)))))
+(defn append-strings
+  [strings1 strings2]
+  (let [length (max (count strings1) (count strings2))]
+    (map str (pad strings1 length "") (pad strings2 length ""))))
 
-(defn add-border-to-vos
-  [vos]
-  (let [width (count (first vos))
+(defn add-border-to-strings
+  [strings]
+  (let [width (count (first strings))
         border (apply str (flatten [\+ (repeat width \-) \+]))]
-    (vec (concat [border] (map #(format "|%s|" %) vos) [border]))))
+    (vec (concat [border] (map #(format "|%s|" %) strings) [border]))))

@@ -2,7 +2,7 @@
   (:require [robots.constants :as const]
             [robots.util :as util]))
 
-; A "grid" is a vector of characters representing the printable board.
+;; A "grid" is a vector of characters representing the printable board.
 
 (defn empty-grid
   []
@@ -52,15 +52,15 @@
 (defn grid->board
   [grid]
   (let [char-map (group-by
-                   last
-                   (map-indexed
-                     (fn [idx ch] [(grid-idx->coord idx) ch])
-                     grid))]
+                  last
+                  (map-indexed
+                   (fn [idx ch] [(grid-idx->coord idx) ch])
+                   grid))]
     {:player (first (first (char-map const/player-char)))
      :robots (set (map first (char-map const/robot-char)))
      :piles (set (map first (char-map const/pile-char)))}))
 
-(defn grid->vos
+(defn grid->strings
   "Return a vector of strings representing the grid"
   [grid]
   (mapv #(apply str %) (partition const/cols grid)))
@@ -68,4 +68,4 @@
 (defn grid->str
   "Return a string representing the grid (suitable for printing)"
   [grid]
-  (apply str (interpose "\n" (grid->vos grid))))
+  (apply str (interpose "\n" (grid->strings grid))))

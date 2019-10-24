@@ -13,10 +13,10 @@
     ; truncates to specified size
     (is (= [:x :x :x] (pad [:x :x :x :x] 3 :p)))))
 
-(deftest test-vos+vos
+(deftest test-append-strings
   (testing "same length"
-    (is (= ["ad" "be" "cf"] (vos+vos ["a" "b" "c"] ["d" "e" "f"]))))
+    (is (= ["aadd" "bbee" "ccff"] (append-strings ["aa" "bb" "cc"] ["dd" "ee" "ff"]))))
   (testing "first longer"
-    (is (= ["ad" "be" "c"]  (vos+vos ["a" "b" "c"] ["d" "e"    ]))))
+    (is (= ["aadd" "bbee" "cc"  ] (append-strings ["aa" "bb" "cc"] ["dd" "ee"     ]))))
   (testing "first shorter"
-    (is (= ["ad" "be" "f"]  (vos+vos ["a" "b"    ] ["d" "e" "f"])))))
+    (is (= ["aadd" "bbee" "ff"  ] (append-strings ["aa" "bb"     ] ["dd" "ee" "ff"])))))

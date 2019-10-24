@@ -1,14 +1,15 @@
 (ns robots.game
-  (:require [robots.board    :as board]
-            [robots.coord    :as coord]
-            [robots.grid     :as grid]
-            [robots.history  :as history]
-            [robots.terminal :as term]
-            [robots.util     :as util]))
+  (:require [robots.board     :as board]
+            [robots.constants :as const]
+            [robots.coord     :as coord]
+            [robots.grid      :as grid]
+            [robots.history   :as history]
+            [robots.terminal  :as term]
+            [robots.util      :as util]))
 
 (defn level->robots
   [level]
-  (* 10 level))
+  (* const/robots-per-level level))
 
 (defn level->rand-board
   [level]
@@ -22,14 +23,14 @@
 (defn render-game
   [board level moves]
   (term/clear-screen)
-  (let [board-vos (util/add-border-to-vos (board/board->vos board))
+  (let [board-strings (util/add-border-to-strings (board/board->strings board))
         alive? (board/player-alive? board)
         sidebar ["" (str " Level " level)
                  "" (str " Moves " moves)
                  "" (str " Robots " (board/count-robots board) "/" (level->robots level))
                  "" (str " Piles " (board/count-piles board))
                  "" (if alive? " Alive :)" " *** DEAD ***")]]
-    (println (apply str (interpose "\n" (util/vos+vos board-vos sidebar))))
+    (println (apply str (interpose "\n" (util/append-strings board-strings sidebar))))
     (when alive?
       (print "Move HJKLYUBN or numpad [T]teleport [space]wait [Z]undo [X]redo")
       (term/move-cursor (player-screen-coord board))))

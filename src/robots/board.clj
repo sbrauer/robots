@@ -1,5 +1,5 @@
 (ns robots.board
-  (:require clojure.set
+  (:require [clojure.set :as set]
             [robots.coord :as coord]
             [robots.grid  :as grid]))
 
@@ -8,7 +8,7 @@
 
 (defn player-alive?
   [board]
-  (not (contains? (clojure.set/union (:piles board) (:robots board)) (:player board))))
+  (not (contains? (set/union (:piles board) (:robots board)) (:player board))))
 
 (defn count-piles
   [board]
@@ -33,10 +33,10 @@
   [board]
   (grid/grid->str (board->grid board)))
 
-(defn board->vos
+(defn board->strings
   "Return a vector of strings representing the board"
   [board]
-  (grid/grid->vos (board->grid board)))
+  (grid/grid->strings (board->grid board)))
 
 (defn safe-coord?
   [board coord]
@@ -71,18 +71,20 @@
 (defn move-robots
   [board]
   (let [robots-by-pileup?
-          (->> (:robots board)
-               (map (partial coord/move-towards (:player board)))
-               (frequencies)
-               (map (fn [[coord cnt]] [coord (< 1 cnt)]))
-               (group-by second)
-               (map #(vector (first %) (map first (second %))))
-               (into {}))]
+        (->> (:robots board)
+             (map (partial coord/move-towards (:player board)))
+             (frequencies)
+             (map (fn [[coord cnt]] [coord (< 1 cnt)]))
+             (group-by second)
+             (map #(vector (first %) (map first (second %))))
+             (into {}))]
     (assoc board
-      :robots (clojure.set/difference
-                (set (get robots-by-pileup? false)) (:piles board))
-      :piles  (clojure.set/union
-                (set (get robots-by-pileup? true))  (:piles board)))))
+           :robots (set/difference
+                    (set (get robots-by-pileup? false))
+                    (:piles board))
+           :piles  (set/union
+                    (set (get robots-by-pileup? true))
+                    (:piles board)))))
 
 (defn wait-for-end
   [board]
