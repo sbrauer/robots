@@ -21,12 +21,12 @@
   (map + (:player board) [2 2]))
 
 (defn render-game
-  [board level moves]
+  [board level num-moves]
   (term/clear-screen)
   (let [board-strings (util/add-border-to-strings (board/board->strings board))
         alive? (board/player-alive? board)
         sidebar ["" (str " Level " level)
-                 "" (str " Moves " moves)
+                 "" (str " Moves " num-moves)
                  "" (str " Robots " (board/count-robots board) "/" (level->robots level))
                  "" (str " Piles " (board/count-piles board))
                  "" (if alive? " Alive :)" " *** DEAD ***")]]
@@ -103,25 +103,29 @@
       (board/move-robots new-board)
       new-board)))
 
+(def play-turn-with-history (history/historize play-turn))
+
 (defn play-board
   "Returns one of :random :retry :success :newgame :quit"
   [board level]
   (render-game board level 0)
-  ;; Wrap play-turn with history support (undo and redo)
-  (let [play-turn-h (history/historize play-turn)]
-    (loop [board board]
-      (let [{new-board :state undos :undos} (play-turn-h board (get-valid-action board))]
-        (render-game new-board level (count undos))
-        (if (board/player-alive? new-board)
-          (if (board/robots-alive? new-board)
-            (recur new-board)
-            :success)
-          (let [result (handle-death)]
-            (if (= result :undo)
-              (let [{new-board :state undos :undos} (play-turn-h new-board :undo)]
-                (render-game new-board level (count undos))
-                (recur new-board))
-              result)))))))
+  (loop [history-context {:state board}]
+    (let [action (get-valid-action (:state history-context))
+          new-context (play-turn-with-history history-context action)
+          board (:state new-context)
+          num-moves (count (:undos new-context))]
+      (render-game board level num-moves)
+      (if (board/player-alive? board)
+        (if (board/robots-alive? board)
+          (recur new-context)
+          :success)
+        (let [result (handle-death)]
+          ;; Undoing death is a bit of special case...
+          (if (= result :undo)
+            (let [{:keys [state undos] :as new-context} (play-turn-with-history new-context :undo)]
+              (render-game state level (count undos))
+              (recur new-context))
+            result))))))
 
 (defn play-level
   "Returns one of :success :newgame :quit"
